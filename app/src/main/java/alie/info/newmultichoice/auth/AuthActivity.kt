@@ -7,6 +7,8 @@ import android.animation.ValueAnimator
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AccelerateDecelerateInterpolator
@@ -54,12 +56,11 @@ class AuthActivity : AppCompatActivity() {
         // Keep splash screen visible for 3 seconds
         var keepSplashOnScreen = true
         splashScreen.setKeepOnScreenCondition { keepSplashOnScreen }
-        
-        // Hide splash after 3 seconds
-        Thread {
-            Thread.sleep(3000)
+
+        // Hide splash after 3 seconds using Handler (lifecycle-aware)
+        Handler(Looper.getMainLooper()).postDelayed({
             keepSplashOnScreen = false
-        }.start()
+        }, 3000)
         
         super.onCreate(savedInstanceState)
         

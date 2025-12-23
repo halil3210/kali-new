@@ -140,18 +140,19 @@ class QuizRepository(private val context: Context) {
      * Save quiz session and all answers atomically
      * This ensures data consistency even if app crashes during save
      */
-    @androidx.room.Transaction
     suspend fun saveSessionWithAnswers(session: QuizSession, answers: List<UserAnswer>): Long {
         return withContext(Dispatchers.IO) {
-            // Save session first
-            val sessionId = sessionDao.insertSession(session)
-            
-            // Save all answers with the correct session ID
-            answers.forEach { answer ->
-                answerDao.insertAnswer(answer.copy(sessionId = sessionId))
+            database.runInTransaction {
+                // Save session first
+                val sessionId = sessionDao.insertSession(session)
+
+                // Save all answers with the correct session ID
+                answers.forEach { answer ->
+                    answerDao.insertAnswer(answer.copy(sessionId = sessionId))
+                }
+
+                sessionId
             }
-            
-            sessionId
         }
     }
     
