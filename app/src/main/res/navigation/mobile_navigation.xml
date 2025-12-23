@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mobile_navigation"
+    app:startDestination="@+id/nav_home">
+
+    <fragment
+        android:id="@+id/nav_home"
+        android:name="alie.info.newmultichoice.ui.home.HomeFragment"
+        android:label="@string/menu_home"
+        tools:layout="@layout/fragment_home">
+        <action
+            android:id="@+id/action_nav_home_to_quizFragment"
+            app:destination="@id/quizFragment"
+            app:enterAnim="@android:anim/slide_in_left"
+            app:exitAnim="@android:anim/slide_out_right"
+            app:popEnterAnim="@android:anim/slide_in_left"
+            app:popExitAnim="@android:anim/slide_out_right" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/quizFragment"
+        android:name="alie.info.newmultichoice.ui.quiz.QuizFragment"
+        android:label="@string/menu_quiz"
+        tools:layout="@layout/fragment_quiz">
+        <argument
+            android:name="practiceMode"
+            app:argType="boolean"
+            android:defaultValue="false" />
+        <action
+            android:id="@+id/action_quizFragment_to_resultFragment"
+            app:destination="@id/resultFragment"
+            app:enterAnim="@android:anim/fade_in"
+            app:exitAnim="@android:anim/fade_out" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/resultFragment"
+        android:name="alie.info.newmultichoice.ui.result.ResultFragment"
+        android:label="@string/menu_results"
+        tools:layout="@layout/fragment_result">
+        <argument
+            android:name="totalQuestions"
+            app:argType="integer" />
+        <argument
+            android:name="correctAnswers"
+            app:argType="integer" />
+        <argument
+            android:name="wrongAnswers"
+            app:argType="integer" />
+        <argument
+            android:name="isMarathon"
+            app:argType="boolean"
+            android:defaultValue="false" />
+        <action
+            android:id="@+id/action_resultFragment_to_quizFragment"
+            app:destination="@id/quizFragment"
+            app:popUpTo="@id/quizFragment"
+            app:popUpToInclusive="true" />
+        <action
+            android:id="@+id/action_resultFragment_to_nav_home"
+            app:destination="@id/nav_home"
+            app:popUpTo="@id/nav_home"
+            app:popUpToInclusive="false" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/nav_sessions"
+        android:name="alie.info.newmultichoice.ui.sessions.SessionsFragment"
+        android:label="@string/sessions"
+        tools:layout="@layout/fragment_sessions" />
+
+    <fragment
+        android:id="@+id/nav_statistics"
+        android:name="alie.info.newmultichoice.ui.statistics.StatisticsFragment"
+        android:label="@string/statistics"
+        tools:layout="@layout/fragment_statistics">
+        <action
+            android:id="@+id/action_nav_statistics_to_quizFragment"
+            app:destination="@id/quizFragment"
+            app:enterAnim="@android:anim/slide_in_left"
+            app:exitAnim="@android:anim/slide_out_right" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/nav_achievements"
+        android:name="alie.info.newmultichoice.ui.achievements.AchievementsFragment"
+        android:label="Achievements"
+        tools:layout="@layout/fragment_achievements" />
+
+    <fragment
+        android:id="@+id/examFragment"
+        android:name="alie.info.newmultichoice.ui.exam.ExamFragment"
+        android:label="Marathon Mode"
+        tools:layout="@layout/fragment_exam">
+        <action
+            android:id="@+id/action_examFragment_to_resultFragment"
+            app:destination="@id/resultFragment"
+            app:enterAnim="@android:anim/fade_in"
+            app:exitAnim="@android:anim/fade_out"
+            app:popUpTo="@id/examFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/nav_kali_tools"
+        android:name="alie.info.newmultichoice.ui.kalitools.KaliToolsFragment"
+        android:label="Kali Linux Tools"
+        tools:layout="@layout/fragment_kali_tools">
+        <action
+            android:id="@+id/action_nav_kali_tools_to_kali_tool_detail"
+            app:destination="@id/kaliToolDetailFragment"
+            app:enterAnim="@android:anim/slide_in_left"
+            app:exitAnim="@android:anim/slide_out_right"
+            app:popEnterAnim="@android:anim/slide_in_left"
+            app:popExitAnim="@android:anim/slide_out_right" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/kaliToolDetailFragment"
+        android:name="alie.info.newmultichoice.ui.kalitools.KaliToolDetailFragment"
+        android:label="Tool Details"
+        tools:layout="@layout/fragment_kali_tool_detail">
+        <argument
+            android:name="toolId"
+            app:argType="integer" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/nav_gallery"
+        android:name="alie.info.newmultichoice.ui.gallery.GalleryFragment"
+        android:label="@string/menu_gallery"
+        tools:layout="@layout/fragment_gallery" />
+
+    <fragment
+        android:id="@+id/nav_slideshow"
+        android:name="alie.info.newmultichoice.ui.slideshow.SlideshowFragment"
+        android:label="@string/menu_slideshow"
+        tools:layout="@layout/fragment_slideshow" />
+
+    <fragment
+        android:id="@+id/nav_exam_list"
+        android:name="alie.info.newmultichoice.ui.examlist.ExamListFragment"
+        android:label="Exams"
+        tools:layout="@layout/fragment_exam_list">
+        <action
+            android:id="@+id/action_nav_exam_list_to_exam_quiz_fragment"
+            app:destination="@id/examQuizFragment"
+            app:enterAnim="@android:anim/slide_in_left"
+            app:exitAnim="@android:anim/slide_out_right"
+            app:popEnterAnim="@android:anim/slide_in_left"
+            app:popExitAnim="@android:anim/slide_out_right" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/examQuizFragment"
+        android:name="alie.info.newmultichoice.ui.examquiz.ExamQuizFragment"
+        android:label="Exam"
+        tools:layout="@layout/fragment_exam">
+        <argument
+            android:name="examNumber"
+            app:argType="integer" />
+        <argument
+            android:name="examTitle"
+            app:argType="string" />
+        <argument
+            android:name="examDifficulty"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/nav_faq"
+        android:name="alie.info.newmultichoice.ui.faq.FaqFragment"
+        android:label="FAQ"
+        tools:layout="@layout/fragment_faq" />
+</navigation>

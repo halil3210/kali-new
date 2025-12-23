@@ -1,0 +1,289 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    tools:context=".ui.home.HomeFragment">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="20dp"
+        android:paddingTop="60dp"
+        android:paddingBottom="28dp"
+        android:background="@drawable/modern_background">
+
+        <!-- Subtle gradient overlay - Background layer -->
+        <View
+            android:id="@+id/shineOverlay"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:background="@drawable/shine_gradient"
+            android:alpha="0.15"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <!-- 3D Rotating Logo Container - Centered -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/logoContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            app:cardCornerRadius="28dp"
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="@android:color/transparent"
+            app:strokeWidth="0dp"
+            android:padding="8dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+            
+            <!-- 3D Rotation Container -->
+            <FrameLayout
+                android:id="@+id/logoRotationContainer"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:clipChildren="false">
+                
+                <!-- Front Side - App Icon -->
+                <ImageView
+                    android:id="@+id/appLogo"
+                    android:layout_width="100dp"
+                    android:layout_height="100dp"
+                    android:src="@mipmap/ic_launcher"
+                    android:contentDescription="@string/app_name"
+                    android:scaleType="fitCenter" />
+                
+                <!-- Back Side - KLCP Logo (initially hidden) -->
+                <ImageView
+                    android:id="@+id/klcpLogo"
+                    android:layout_width="100dp"
+                    android:layout_height="100dp"
+                    android:src="@drawable/klcp_logo"
+                    android:contentDescription="KLCP Logo"
+                    android:scaleType="fitCenter"
+                    android:alpha="0.0"
+                    android:rotationY="180" />
+            </FrameLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Streak Card - Glassmorphism -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/streakCard"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="28dp"
+            app:cardBackgroundColor="#2A1F3A"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="16dp"
+            app:strokeWidth="0dp"
+            app:layout_constraintTop_toBottomOf="@id/logoContainer"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+            
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="16dp">
+                
+                <!-- Progress Ring - Modern Gradient -->
+                <ProgressBar
+                    android:id="@+id/dailyProgressRing"
+                    android:layout_width="88dp"
+                    android:layout_height="88dp"
+                    android:indeterminateOnly="false"
+                    android:progressDrawable="@drawable/modern_progress_ring"
+                    android:max="50"
+                    android:progress="0"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent" />
+                
+                <!-- Progress Count -->
+                <TextView
+                    android:id="@+id/progressCountText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0/10"
+                    android:textColor="@android:color/white"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    app:layout_constraintTop_toTopOf="@id/dailyProgressRing"
+                    app:layout_constraintBottom_toBottomOf="@id/dailyProgressRing"
+                    app:layout_constraintStart_toStartOf="@id/dailyProgressRing"
+                    app:layout_constraintEnd_toEndOf="@id/dailyProgressRing" />
+                
+                <!-- Streak Info -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginStart="16dp"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toEndOf="@id/dailyProgressRing"
+                    app:layout_constraintEnd_toEndOf="parent">
+                    
+                    <TextView
+                        android:id="@+id/streakText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🎯 0 / 50 correct answers"
+                        android:textColor="@color/text_primary"
+                        android:textSize="19sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.01" />
+                    
+                    <TextView
+                        android:id="@+id/dailyGoalText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:text="For Marathon &amp; Exams"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="14sp" />
+                    
+                    <TextView
+                        android:id="@+id/longestStreakText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="50 more to unlock"
+                        android:textColor="@color/text_tertiary"
+                        android:textSize="12sp" />
+                </LinearLayout>
+            </androidx.constraintlayout.widget.ConstraintLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+
+
+        <!-- Start Button - Modern Gradient -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/startQuizButton"
+            android:layout_width="0dp"
+            android:layout_height="68dp"
+            android:layout_marginTop="32dp"
+            android:text="@string/start_quiz"
+            android:textSize="19sp"
+            android:textStyle="bold"
+            android:textColor="@android:color/white"
+            android:letterSpacing="0.02"
+            app:icon="@android:drawable/ic_media_play"
+            app:iconGravity="textStart"
+            app:iconTint="@android:color/white"
+            app:iconSize="24dp"
+            app:iconPadding="8dp"
+            app:background="@drawable/modern_button_primary"
+            app:cornerRadius="20dp"
+            app:elevation="12dp"
+            app:rippleColor="#50FFFFFF"
+            app:layout_constraintTop_toBottomOf="@id/streakCard"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <!-- Marathon Button - Modern Gradient -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/examModeButton"
+            android:layout_width="0dp"
+            android:layout_height="68dp"
+            android:layout_marginTop="16dp"
+            android:text="🏃 Marathon"
+            android:textSize="19sp"
+            android:textStyle="bold"
+            android:textColor="@android:color/white"
+            android:letterSpacing="0.02"
+            app:icon="@android:drawable/ic_lock_idle_alarm"
+            app:iconGravity="textStart"
+            app:iconTint="@android:color/white"
+            app:iconSize="24dp"
+            app:iconPadding="8dp"
+            app:background="@drawable/modern_button_secondary"
+            app:cornerRadius="20dp"
+            app:elevation="12dp"
+            app:rippleColor="#50FFFFFF"
+            app:layout_constraintTop_toBottomOf="@id/startQuizButton"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <!-- Certification Exams Button - Modern Gradient -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/certificationExamsButton"
+            android:layout_width="0dp"
+            android:layout_height="68dp"
+            android:layout_marginTop="16dp"
+            android:text="📝 Certification Exams"
+            android:textSize="19sp"
+            android:textStyle="bold"
+            android:textColor="@android:color/white"
+            android:letterSpacing="0.02"
+            app:icon="@android:drawable/ic_menu_edit"
+            app:iconGravity="textStart"
+            app:iconTint="@android:color/white"
+            app:iconSize="24dp"
+            app:iconPadding="8dp"
+            app:background="@drawable/modern_button_accent"
+            app:cornerRadius="20dp"
+            app:elevation="12dp"
+            app:rippleColor="#50FFFFFF"
+            app:layout_constraintTop_toBottomOf="@id/examModeButton"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <!-- Language Hint -->
+        <TextView
+            android:id="@+id/languageHint"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="28dp"
+            android:text="Available in EN · DE"
+            android:textSize="14sp"
+            android:textAlignment="center"
+            android:textColor="@color/text_tertiary"
+            android:letterSpacing="0.05"
+            app:layout_constraintTop_toBottomOf="@id/certificationExamsButton"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <!-- Welcome Title - Moved to bottom -->
+        <TextView
+            android:id="@+id/welcomeTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="32dp"
+            android:text="@string/welcome_message"
+            android:textAlignment="center"
+            android:textSize="18sp"
+            android:textStyle="normal"
+            android:textColor="@color/text_tertiary"
+            android:alpha="0.7"
+            android:letterSpacing="0.01"
+            app:layout_constraintTop_toBottomOf="@id/languageHint"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <!-- Copyright -->
+        <TextView
+            android:id="@+id/copyrightText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="24dp"
+            android:text="© 2025 KLCP Quiz App\nAll rights reserved"
+            android:textSize="12sp"
+            android:textAlignment="center"
+            android:textColor="@color/text_tertiary"
+            android:alpha="0.6"
+            android:lineSpacingExtra="3dp"
+            app:layout_constraintTop_toBottomOf="@id/welcomeTitle"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</ScrollView>
+

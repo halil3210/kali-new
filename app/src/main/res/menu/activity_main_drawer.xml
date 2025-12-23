@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:showIn="navigation_view">
+
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/nav_home"
+            android:icon="@drawable/ic_nav_home"
+            android:title="@string/menu_home" />
+        <item
+            android:id="@+id/nav_practice_wrong"
+            android:icon="@drawable/ic_nav_practice"
+            android:title="@string/practice_wrong_answers" />
+        <item
+            android:id="@+id/nav_sessions"
+            android:icon="@drawable/ic_nav_sessions"
+            android:title="@string/sessions" />
+        <item
+            android:id="@+id/nav_statistics"
+            android:icon="@drawable/ic_nav_statistics"
+            android:title="@string/statistics" />
+        <item
+            android:id="@+id/nav_achievements"
+            android:icon="@drawable/ic_nav_achievements"
+            android:title="Achievements" />
+        <item
+            android:id="@+id/nav_exam_list"
+            android:icon="@drawable/ic_nav_exams"
+            android:title="Exams" />
+        <item
+            android:id="@+id/nav_kali_tools"
+            android:icon="@drawable/ic_nav_tools"
+            android:title="Kali Linux Tools" />
+        <item
+            android:id="@+id/nav_faq"
+            android:icon="@drawable/ic_nav_faq"
+            android:title="FAQ" />
+    </group>
+    
+    <group android:id="@+id/account_group">
+        <item
+            android:id="@+id/nav_logout"
+            android:icon="@drawable/ic_nav_logout"
+            android:title="@string/logout" />
+        <item
+            android:id="@+id/nav_delete_account"
+            android:icon="@drawable/ic_nav_delete"
+            android:title="@string/delete_account" />
+    </group>
+</menu>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Base gradient -->
+    <item>
+        <shape android:shape="oval">
+            <gradient
+                android:angle="135"
+                android:startColor="#C0C0C0"
+                android:centerColor="#E8E8E8"
+                android:endColor="#A0A0A0"
+                android:type="linear" />
+        </shape>
+    </item>
+    
+    <!-- Shine effect -->
+    <item android:top="2dp" android:left="2dp" android:right="2dp" android:bottom="2dp">
+        <shape android:shape="oval">
+            <gradient
+                android:angle="135"
+                android:startColor="#60FFFFFF"
+                android:centerColor="#30FFFFFF"
+                android:endColor="#00FFFFFF"
+                android:type="radial"
+                android:gradientRadius="50" />
+        </shape>
+    </item>
+</layer-list>
+
