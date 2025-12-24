@@ -68,6 +68,7 @@ class AuthManager private constructor(private val context: Context) {
             .putString(PREF_USER_ID, userId)
             .putString(PREF_USER_EMAIL, email)
             .putBoolean(PREF_IS_LOGGED_IN, true)
+            .remove(PREF_IS_GUEST) // Clear guest mode when saving credentials
             .apply()
         android.util.Log.d("AuthManager", "Credentials saved for: $email")
     }
@@ -103,12 +104,13 @@ class AuthManager private constructor(private val context: Context) {
                 if (response.isSuccessful) {
                     val body = response.body()
                     if (body != null && body.error == null) {
-                        // Save auth data
+                        // Save auth data and clear guest mode
                         prefs.edit()
                             .putString(PREF_AUTH_TOKEN, body.token)
                             .putString(PREF_USER_ID, body.userId)
                             .putString(PREF_USER_EMAIL, body.email)
                             .putBoolean(PREF_IS_LOGGED_IN, true)
+                            .remove(PREF_IS_GUEST) // Clear guest mode on successful registration
                             .apply()
                         
                         android.util.Log.d("AuthManager", "✅ Registration successful: ${body.email}")
@@ -144,12 +146,13 @@ class AuthManager private constructor(private val context: Context) {
                 if (response.isSuccessful) {
                     val body = response.body()
                     if (body != null && body.error == null) {
-                        // Save auth data
+                        // Save auth data and clear guest mode
                         prefs.edit()
                             .putString(PREF_AUTH_TOKEN, body.token)
                             .putString(PREF_USER_ID, body.userId)
                             .putString(PREF_USER_EMAIL, body.email)
                             .putBoolean(PREF_IS_LOGGED_IN, true)
+                            .remove(PREF_IS_GUEST) // Clear guest mode on successful login
                             .apply()
                         
                         android.util.Log.d("AuthManager", "✅ Login successful: ${body.email}")

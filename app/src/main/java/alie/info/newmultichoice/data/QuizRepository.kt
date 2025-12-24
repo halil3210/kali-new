@@ -12,12 +12,13 @@ import alie.info.newmultichoice.api.models.UserStatsDto
  * Repository for managing quiz data
  */
 class QuizRepository(private val context: Context) {
-    
+
     private val database = QuizDatabase.getDatabase(context)
     private val questionDao = database.questionDao()
     private val sessionDao = database.quizSessionDao()
     private val answerDao = database.userAnswerDao()
     private val statsDao = database.userStatsDao()
+    private val memoryCache = MemoryCache.getInstance()
     
     /**
      * Initialize database with questions from JSON if not already loaded
@@ -60,7 +61,20 @@ class QuizRepository(private val context: Context) {
      */
     suspend fun getAllQuestions(): List<Question> {
         return withContext(Dispatchers.IO) {
-            questionDao.getAllQuestions()
+            // Check cache first
+            memoryCache.getAllQuestions()?.let { cachedQuestions ->
+                alie.info.newmultichoice.utils.Logger.d("QuizRepository", "Returning cached questions (${cachedQuestions.size} items)")
+                return@withContext cachedQuestions
+            }
+
+            // Load from database
+            val questions = questionDao.getAllQuestions()
+
+            // Cache the result
+            memoryCache.putAllQuestions(questions)
+            alie.info.newmultichoice.utils.Logger.d("QuizRepository", "Loaded and cached questions (${questions.size} items)")
+
+            questions
         }
     }
     
@@ -69,7 +83,19 @@ class QuizRepository(private val context: Context) {
      */
     suspend fun getQuestionById(id: Int): Question? {
         return withContext(Dispatchers.IO) {
-            questionDao.getQuestionById(id)
+            // Check cache first
+            memoryCache.getQuestion(id)?.let { cachedQuestion ->
+                alie.info.newmultichoice.utils.Logger.d("QuizRepository", "Returning cached question ID: $id")
+                return@withContext cachedQuestion
+            }
+
+            // Load from database
+            val question = questionDao.getQuestionById(id)
+
+            // Cache the result if found
+            question?.let { memoryCache.putQuestion(it) }
+
+            question
         }
     }
     
@@ -142,17 +168,21 @@ class QuizRepository(private val context: Context) {
      */
     suspend fun saveSessionWithAnswers(session: QuizSession, answers: List<UserAnswer>): Long {
         return withContext(Dispatchers.IO) {
+            var sessionId: Long = 0
+
             database.runInTransaction {
-                // Save session first
-                val sessionId = sessionDao.insertSession(session)
+                kotlinx.coroutines.runBlocking {
+                    // Save session first
+                    sessionId = sessionDao.insertSession(session)
 
-                // Save all answers with the correct session ID
-                answers.forEach { answer ->
-                    answerDao.insertAnswer(answer.copy(sessionId = sessionId))
+                    // Save all answers with the correct session ID
+                    answers.forEach { answer ->
+                        answerDao.insertAnswer(answer.copy(sessionId = sessionId))
+                    }
                 }
-
-                sessionId
             }
+
+            sessionId
         }
     }
     
@@ -162,13 +192,35 @@ class QuizRepository(private val context: Context) {
      * Get user stats as Flow
      */
     fun getUserStats() = statsDao.getUserStats()
+
+    /**
+     * Get user stats with caching (for one-time reads)
+     */
+    suspend fun getUserStatsCached(): UserStats {
+        return withContext(Dispatchers.IO) {
+            // Check cache first
+            memoryCache.getUserStats()?.let { cachedStats ->
+                alie.info.newmultichoice.utils.Logger.d("QuizRepository", "Returning cached user stats")
+                return@withContext cachedStats
+            }
+
+            // Load from database
+            val stats = statsDao.getUserStatsOnce() ?: UserStats()
+
+            // Cache the result
+            memoryCache.putUserStats(stats)
+            alie.info.newmultichoice.utils.Logger.d("QuizRepository", "Loaded and cached user stats")
+
+            stats
+        }
+    }
     
     /**
      * Update streak when user completes activity
      */
     suspend fun updateStreak() {
         withContext(Dispatchers.IO) {
-            val stats = statsDao.getUserStatsOnce() ?: UserStats()
+            val stats = getUserStatsCached()
             val today = getCurrentDate()
             val yesterday = getYesterdayDate()
             

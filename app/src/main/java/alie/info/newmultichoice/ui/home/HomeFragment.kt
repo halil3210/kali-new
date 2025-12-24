@@ -12,6 +12,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
+import com.facebook.shimmer.ShimmerFrameLayout
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import alie.info.newmultichoice.R
@@ -19,6 +20,7 @@ import alie.info.newmultichoice.auth.AuthManager
 import alie.info.newmultichoice.data.QuizRepository
 import alie.info.newmultichoice.databinding.FragmentHomeBinding
 import alie.info.newmultichoice.databinding.DialogFirstLaunchBinding
+import alie.info.newmultichoice.databinding.DialogLoadingBinding
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -30,6 +32,7 @@ class HomeFragment : Fragment() {
     private lateinit var authManager: AuthManager
     private var backPressedTime: Long = 0
     private var isUIInitialized = false
+    private lateinit var shimmerContainer: ShimmerFrameLayout
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -48,6 +51,9 @@ class HomeFragment : Fragment() {
     
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        // Initialize shimmer container
+        shimmerContainer = binding.shimmerContainer.root
         
         // Only initialize UI once (prevent double loading)
         if (!isUIInitialized) {
@@ -56,7 +62,10 @@ class HomeFragment : Fragment() {
             
             // Check if first launch
             checkAndShowFirstLaunchDialog()
-            
+
+            // Show loading shimmer
+            showLoading()
+
             setupUI()
             setupBackPressHandler()
             
@@ -92,7 +101,19 @@ class HomeFragment : Fragment() {
         
         dialog.show()
     }
-    
+
+    private fun showLoading() {
+        shimmerContainer.visibility = View.VISIBLE
+        binding.contentContainer.visibility = View.GONE
+        shimmerContainer.startShimmer()
+    }
+
+    private fun hideLoading() {
+        shimmerContainer.stopShimmer()
+        shimmerContainer.visibility = View.GONE
+        binding.contentContainer.visibility = View.VISIBLE
+    }
+
     private fun setupBackPressHandler() {
         // Prevent back press from closing the app with a single press
         requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, object : OnBackPressedCallback(true) {
@@ -181,7 +202,13 @@ class HomeFragment : Fragment() {
         
         // Check unlock status when returning to home
         checkUnlockStatus()
-        
+
+        // Hide loading shimmer after animations are ready
+        viewLifecycleOwner.lifecycleScope.launch {
+            kotlinx.coroutines.delay(800) // Wait for animations to complete
+            hideLoading()
+        }
+
         // Observe user stats for streak display - use viewLifecycleOwner
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -338,9 +365,29 @@ class HomeFragment : Fragment() {
         
         dialogBinding.signUpButton.setOnClickListener {
             dialog.dismiss()
-            // Navigate to AuthActivity
+            
+            // Show modern loading dialog
+            val loadingBinding = alie.info.newmultichoice.databinding.DialogLoadingBinding.inflate(layoutInflater)
+            loadingBinding.loadingText.text = "Loading..."
+            loadingBinding.loadingSubtitle.text = "Please wait"
+            
+            val loadingDialog = MaterialAlertDialogBuilder(requireContext(), R.style.TransparentDialog)
+                .setView(loadingBinding.root)
+                .setCancelable(false)
+                .create()
+            
+            loadingDialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+            loadingDialog.show()
+            
+            // Start AuthActivity and keep loading dialog visible
             val intent = android.content.Intent(requireContext(), alie.info.newmultichoice.auth.AuthActivity::class.java)
+            intent.putExtra("show_loading", true)
             startActivity(intent)
+            
+            // Dismiss loading dialog after Activity transition completes
+            loadingBinding.root.postDelayed({
+                loadingDialog.dismiss()
+            }, 1500) // Wait for Activity to fully load
         }
         
         dialogBinding.maybeLaterButton.setOnClickListener {
@@ -448,10 +495,10 @@ class HomeFragment : Fragment() {
             unlockService.checkAndShowUnlockOverlay(
                 fragment = this@HomeFragment,
                 onMarathonUnlock = {
-                    android.util.Log.d("HomeFragment", "Marathon unlocked!")
+                    alie.info.newmultichoice.utils.Logger.d("HomeFragment", "Marathon unlocked!")
                 },
                 onExamsUnlock = {
-                    android.util.Log.d("HomeFragment", "Exams unlocked!")
+                    alie.info.newmultichoice.utils.Logger.d("HomeFragment", "Exams unlocked!")
                 }
             )
         }

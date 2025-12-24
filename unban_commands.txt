@@ -1,0 +1,21 @@
+# Entbann-Befehle für Hetzner-Konsole
+# Kopiere und führe diese Befehle aus:
+
+# 1. Alle IPs entbannen
+fail2ban-client unban --all
+
+# 2. Meine spezifische IP entbannen (ersetze mit aktueller IP)
+fail2ban-client set sshd unbanip 94.134.176.91
+
+# 3. fail2ban für SSH komplett stoppen (temporär)
+fail2ban-client stop sshd
+
+# 4. IP zur Whitelist hinzufügen (permanent)
+echo "ignoreip = 127.0.0.1/8 ::1 94.134.176.91" >> /etc/fail2ban/jail.local
+
+# 5. fail2ban neu laden
+systemctl restart fail2ban
+
+# 6. Status prüfen
+fail2ban-client status sshd
+

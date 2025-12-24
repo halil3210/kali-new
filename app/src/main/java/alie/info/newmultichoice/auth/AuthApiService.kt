@@ -35,10 +35,8 @@ interface AuthApiService {
         @Body request: ResendVerificationRequest
     ): Response<ResendVerificationResponse>
     
-    @POST("api/auth/google-signin")
-    suspend fun googleSignIn(
-        @Body request: GoogleSignInRequest
-    ): Response<AuthResponse>
+    // Google Sign-In REMOVED - Causes emulator crashes
+    
 }
 
 data class DeleteAccountResponse(
@@ -60,9 +58,5 @@ data class ResendVerificationResponse(
     val error: String? = null
 )
 
-data class GoogleSignInRequest(
-    val idToken: String,
-    val email: String,
-    val displayName: String
-)
+// Google Sign-In REMOVED - Causes emulator crashes
 

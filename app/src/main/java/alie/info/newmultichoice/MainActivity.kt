@@ -28,11 +28,14 @@ import androidx.navigation.ui.setupWithNavController
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
+import alie.info.newmultichoice.databinding.DialogLoadingBinding
 import androidx.core.view.WindowCompat
 import androidx.core.view.GravityCompat
 import alie.info.newmultichoice.auth.AuthActivity
 import alie.info.newmultichoice.auth.AuthManager
 import alie.info.newmultichoice.auth.ProfileManager
+import alie.info.newmultichoice.utils.VersionManager
+import alie.info.newmultichoice.utils.VersionCheckResult
 import alie.info.newmultichoice.databinding.ActivityMainBinding
 import alie.info.newmultichoice.databinding.DialogProfileBinding
 import kotlinx.coroutines.launch
@@ -94,8 +97,8 @@ class MainActivity : AppCompatActivity() {
         // Request notification permission (Android 13+)
         alie.info.newmultichoice.utils.NotificationPermissionHelper.requestNotificationPermission(this)
         
-        // Schedule background sync
-        alie.info.newmultichoice.sync.SyncWorker.schedulePeriodicSync(this)
+        // Schedule background sync - TEMPORARILY DISABLED TO PREVENT EMULATOR CRASHES
+        // alie.info.newmultichoice.sync.SyncWorker.schedulePeriodicSync(this)
         
         // Check for demo mode
         val isDemoMode = intent.getBooleanExtra("demo_mode", false)
@@ -232,6 +235,9 @@ class MainActivity : AppCompatActivity() {
         
         // Setup custom gesture detector
         setupGestureDetector(drawerLayout, navController)
+
+        // Check version compatibility in background
+        checkVersionCompatibility()
     }
     
     private fun setupGestureDetector(drawerLayout: DrawerLayout, navController: androidx.navigation.NavController) {
@@ -348,9 +354,11 @@ class MainActivity : AppCompatActivity() {
     
     private fun setupProfileHeader(navView: NavigationView, drawerLayout: DrawerLayout) {
         val headerView = navView.getHeaderView(0)
-        val profileImage = headerView.findViewById<android.widget.ImageView>(R.id.profileImage)
         val profileName = headerView.findViewById<android.widget.TextView>(R.id.profileName)
         val profileEmail = headerView.findViewById<android.widget.TextView>(R.id.profileEmail)
+        
+        // Setup 3D rotating logo in header
+        setup3DRotatingLogoHeader(headerView)
         
         // Update header with current profile info
         updateProfileHeader(profileName, profileEmail)
@@ -360,6 +368,70 @@ class MainActivity : AppCompatActivity() {
             drawerLayout.closeDrawer(navView)
             showProfileDialog()
         }
+    }
+    
+    /**
+     * Setup 3D rotating logo in navigation drawer header
+     */
+    private fun setup3DRotatingLogoHeader(headerView: View) {
+        val container = headerView.findViewById<View>(R.id.logoRotationContainer)
+        val frontLogo = headerView.findViewById<android.widget.ImageView>(R.id.appLogo)
+        val backLogo = headerView.findViewById<android.widget.ImageView>(R.id.klcpLogo)
+        
+        if (container == null || frontLogo == null || backLogo == null) return
+        
+        // Set camera distance for 3D effect
+        val cameraDistance = 8000f * resources.displayMetrics.density
+        container.cameraDistance = cameraDistance
+        frontLogo.cameraDistance = cameraDistance
+        backLogo.cameraDistance = cameraDistance
+        
+        // Create 3D rotation animator
+        val rotationAnimator = android.animation.ObjectAnimator.ofFloat(container, "rotationY", 0f, 360f).apply {
+            duration = 4000 // 4 seconds for full rotation
+            repeatCount = android.animation.ValueAnimator.INFINITE
+            interpolator = android.view.animation.LinearInterpolator()
+        }
+        
+        // Update alpha values during rotation for smooth transition
+        rotationAnimator.addUpdateListener { animator ->
+            val rotation = animator.animatedValue as Float
+            val normalizedRotation = (rotation % 360f)
+            
+            // Front logo visible from -90 to 90 degrees
+            // Back logo visible from 90 to 270 degrees
+            when {
+                normalizedRotation < 90f -> {
+                    // Front side visible
+                    val alpha = 1f - (normalizedRotation / 90f) * 0.5f
+                    frontLogo.alpha = alpha.coerceIn(0.5f, 1f)
+                    backLogo.alpha = (normalizedRotation / 90f) * 0.5f
+                }
+                normalizedRotation < 180f -> {
+                    // Back side becoming visible
+                    val progress = (normalizedRotation - 90f) / 90f
+                    frontLogo.alpha = 0.5f - progress * 0.5f
+                    backLogo.alpha = 0.5f + progress * 0.5f
+                }
+                normalizedRotation < 270f -> {
+                    // Back side visible
+                    val progress = (normalizedRotation - 180f) / 90f
+                    frontLogo.alpha = progress * 0.5f
+                    backLogo.alpha = 1f - progress * 0.5f
+                }
+                else -> {
+                    // Front side becoming visible again
+                    val progress = (normalizedRotation - 270f) / 90f
+                    frontLogo.alpha = 0.5f + progress * 0.5f
+                    backLogo.alpha = 0.5f - progress * 0.5f
+                }
+            }
+        }
+        
+        // Start rotation
+        container.postDelayed({
+            rotationAnimator.start()
+        }, 500)
     }
     
     private fun updateProfileHeader(nameView: android.widget.TextView, emailView: android.widget.TextView) {
@@ -434,11 +506,32 @@ class MainActivity : AppCompatActivity() {
             
             dialogBinding.signUpButton.setOnClickListener {
                 dialog.dismiss()
+                
+                // Show modern loading dialog
+                val loadingBinding = alie.info.newmultichoice.databinding.DialogLoadingBinding.inflate(layoutInflater)
+                loadingBinding.loadingText.text = "Loading..."
+                loadingBinding.loadingSubtitle.text = "Please wait"
+                
+                val loadingDialog = MaterialAlertDialogBuilder(this, alie.info.newmultichoice.R.style.TransparentDialog)
+                    .setView(loadingBinding.root)
+                    .setCancelable(false)
+                    .create()
+                
+                loadingDialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+                loadingDialog.show()
+                
                 // Clear guest mode
                 authManager.clearGuestMode()
-                // Navigate to AuthActivity
+                
+                // Start AuthActivity and keep loading dialog visible
                 val intent = Intent(this, AuthActivity::class.java)
+                intent.putExtra("show_loading", true)
                 startActivity(intent)
+                
+                // Dismiss loading dialog after Activity transition completes
+                loadingBinding.root.postDelayed({
+                    loadingDialog.dismiss()
+                }, 1500) // Wait for Activity to fully load
             }
             
             dialogBinding.maybeLaterButton.setOnClickListener {
@@ -448,7 +541,7 @@ class MainActivity : AppCompatActivity() {
             dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
             dialog.show()
         } catch (e: Exception) {
-            android.util.Log.e("MainActivity", "Error showing guest upgrade prompt", e)
+            alie.info.newmultichoice.utils.Logger.e("MainActivity", "Error showing guest upgrade prompt", e)
         }
     }
     
@@ -505,9 +598,68 @@ class MainActivity : AppCompatActivity() {
             scaleUp.start()
             scaleUpY.start()
         } catch (e: Exception) {
-            android.util.Log.e("MainActivity", "Error showing transition overlay", e)
+            alie.info.newmultichoice.utils.Logger.e("MainActivity", "Error showing transition overlay", e)
             // Call completion even on error
             onComplete?.invoke()
         }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun finishWithTransition() {
+        finish()
+        // Use deprecated API with suppression since it's still needed for older Android versions
+        overridePendingTransition(0, 0)
+    }
+
+    private fun checkVersionCompatibility() {
+        lifecycleScope.launch {
+            when (val result = VersionManager.checkVersionCompatibility()) {
+                is VersionCheckResult.Compatible -> {
+                    // Everything is fine, no action needed
+                    alie.info.newmultichoice.utils.Logger.d("MainActivity", "App version is compatible with server")
+                }
+                is VersionCheckResult.UpdateRecommended -> {
+                    showVersionDialog(
+                        title = "Update Empfohlen",
+                        message = result.message,
+                        updateUrl = result.updateUrl,
+                        isRequired = false
+                    )
+                }
+                is VersionCheckResult.Incompatible -> {
+                    showVersionDialog(
+                        title = "Update Erforderlich",
+                        message = result.message,
+                        updateUrl = result.updateUrl,
+                        isRequired = result.updateRequired
+                    )
+                }
+                is VersionCheckResult.Error -> {
+                    // Log error but don't show dialog for network issues
+                    alie.info.newmultichoice.utils.Logger.w("MainActivity", "Version check failed: ${result.message}")
+                }
+            }
+        }
+    }
+
+    private fun showVersionDialog(title: String, message: String, updateUrl: String?, isRequired: Boolean) {
+        val builder = MaterialAlertDialogBuilder(this)
+            .setTitle(title)
+            .setMessage(message)
+            .setCancelable(!isRequired)
+
+        if (updateUrl != null) {
+            builder.setPositiveButton("Update") { _, _ ->
+                // Open update URL
+                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(updateUrl))
+                startActivity(intent)
+            }
+        }
+
+        if (!isRequired) {
+            builder.setNegativeButton("Später", null)
+        }
+
+        builder.show()
     }
 }

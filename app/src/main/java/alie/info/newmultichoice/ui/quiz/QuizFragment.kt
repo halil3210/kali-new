@@ -26,6 +26,7 @@ import alie.info.newmultichoice.data.Question
 import alie.info.newmultichoice.databinding.FragmentQuizBinding
 import alie.info.newmultichoice.databinding.DialogQuizSummaryBinding
 import alie.info.newmultichoice.databinding.DialogUpgradePromptBinding
+import alie.info.newmultichoice.databinding.DialogLoadingBinding
 import alie.info.newmultichoice.auth.AuthActivity
 import alie.info.newmultichoice.auth.AuthManager
 import alie.info.newmultichoice.utils.HapticFeedbackHelper
@@ -82,7 +83,7 @@ class QuizFragment : Fragment() {
         isDemoMode = intentDemoMode || isGuest
         val demoLimit = activity?.intent?.getIntExtra("demo_questions", 5) ?: 5
         
-        android.util.Log.d("QuizFragment", "Demo mode: $isDemoMode (intent: $intentDemoMode, guest: $isGuest)")
+        alie.info.newmultichoice.utils.Logger.d("QuizFragment", "Demo mode: $isDemoMode (intent: $intentDemoMode, guest: $isGuest)")
         
         // Load preferences
         loadPreferences()
@@ -105,7 +106,7 @@ class QuizFragment : Fragment() {
         // Handle back button press
         val callback = object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                android.util.Log.d("QuizFragment", "Back pressed - showing exit confirmation")
+                alie.info.newmultichoice.utils.Logger.d("QuizFragment", "Back pressed - showing exit confirmation")
                 // Show confirmation dialog first, like in Exams
                 showExitConfirmation()
             }
@@ -196,12 +197,12 @@ class QuizFragment : Fragment() {
             val isLastQuestion = currentIndex >= totalQuestionsLocal - 1
             
             if (isLastQuestion) {
-                android.util.Log.d("QuizFragment", "Finish button clicked - calling finishQuiz()")
+                alie.info.newmultichoice.utils.Logger.d("QuizFragment", "Finish button clicked - calling finishQuiz()")
                 // Call finishQuiz directly (we need to expose it or use a different approach)
                 // Since finishQuiz is private, we'll use nextQuestion which calls finishQuiz for last question
                 viewModel.nextQuestion() // This will call finishQuiz() internally for last question
             } else {
-                android.util.Log.d("QuizFragment", "Next button clicked - calling nextQuestion()")
+                alie.info.newmultichoice.utils.Logger.d("QuizFragment", "Next button clicked - calling nextQuestion()")
                 viewModel.nextQuestion()
             }
         }
@@ -250,14 +251,14 @@ class QuizFragment : Fragment() {
         
         // Observe summary dialog trigger
         viewModel.showSummaryDialog.observe(viewLifecycleOwner) { show ->
-            android.util.Log.d("QuizFragment", "*** OBSERVER TRIGGERED: showSummaryDialog changed to: $show ***")
-            android.util.Log.d("QuizFragment", "showSummaryDialog changed: $show, isDemoMode: $isDemoMode")
+            alie.info.newmultichoice.utils.Logger.d("QuizFragment", "*** OBSERVER TRIGGERED: showSummaryDialog changed to: $show ***")
+            alie.info.newmultichoice.utils.Logger.d("QuizFragment", "showSummaryDialog changed: $show, isDemoMode: $isDemoMode")
             if (show) {
-                android.util.Log.d("QuizFragment", "*** SHOW IS TRUE - CALLING showQuizSummaryDialog() ***")
+                alie.info.newmultichoice.utils.Logger.d("QuizFragment", "*** SHOW IS TRUE - CALLING showQuizSummaryDialog() ***")
                 showQuizSummaryDialog()
                 viewModel.resetSummaryDialog()
             } else {
-                android.util.Log.d("QuizFragment", "*** SHOW IS FALSE - NOT SHOWING DIALOG ***")
+                alie.info.newmultichoice.utils.Logger.d("QuizFragment", "*** SHOW IS FALSE - NOT SHOWING DIALOG ***")
             }
         }
         
@@ -365,16 +366,16 @@ class QuizFragment : Fragment() {
             val isLastQuestion = currentIndex >= totalQuestionsLocal - 1
             
             if (!isLastQuestion) {
-                android.util.Log.d("QuizFragment", "Auto-progress scheduled: delay=$delay ms")
+                alie.info.newmultichoice.utils.Logger.d("QuizFragment", "Auto-progress scheduled: delay=$delay ms")
                 autoNextHandler.postDelayed({
-                    android.util.Log.d("QuizFragment", "Auto-progress executing: calling nextQuestion()")
+                    alie.info.newmultichoice.utils.Logger.d("QuizFragment", "Auto-progress executing: calling nextQuestion()")
                     viewModel.nextQuestion()
                 }, delay)
             } else {
-                android.util.Log.d("QuizFragment", "Last question - no auto-progress, user must click Finish button")
+                alie.info.newmultichoice.utils.Logger.d("QuizFragment", "Last question - no auto-progress, user must click Finish button")
             }
         } ?: run {
-            android.util.Log.d("QuizFragment", "No auto-progress: autoProgressDelay is null")
+            alie.info.newmultichoice.utils.Logger.d("QuizFragment", "No auto-progress: autoProgressDelay is null")
         }
         
         // Update Next button text based on current question index
@@ -484,7 +485,7 @@ class QuizFragment : Fragment() {
             
             is QuizUiState.QuizFinished -> {
                 // Quiz completed - summary dialog will be shown via LiveData observer
-                android.util.Log.d("QuizFragment", "Quiz finished: ${state.correctAnswers}/${state.totalQuestions}, isDemoMode: $isDemoMode")
+                alie.info.newmultichoice.utils.Logger.d("QuizFragment", "Quiz finished: ${state.correctAnswers}/${state.totalQuestions}, isDemoMode: $isDemoMode")
                 // Upgrade prompt will be shown based on server response via LiveData observer
             }
         }
@@ -614,8 +615,8 @@ class QuizFragment : Fragment() {
     }
 
     private fun showQuizSummaryDialog() {
-        android.util.Log.d("QuizFragment", "=== CREATING SUMMARY DIALOG ===")
-        android.util.Log.d("QuizFragment", "isDemoMode: $isDemoMode, isAdded: $isAdded, isDetached: $isDetached")
+        alie.info.newmultichoice.utils.Logger.d("QuizFragment", "=== CREATING SUMMARY DIALOG ===")
+        alie.info.newmultichoice.utils.Logger.d("QuizFragment", "isDemoMode: $isDemoMode, isAdded: $isAdded, isDetached: $isDetached")
         
         if (!isAdded || isDetached || view == null) {
             android.util.Log.e("QuizFragment", "Fragment not attached, cannot show summary dialog")
@@ -629,7 +630,7 @@ class QuizFragment : Fragment() {
         val total = correct + wrong
         val accuracy = if (total > 0) (correct.toDouble() / total.toDouble()) * 100.0 else 0.0
         
-        android.util.Log.d("QuizFragment", "Dialog stats: $correct / $total (${accuracy}%)")
+        alie.info.newmultichoice.utils.Logger.d("QuizFragment", "Dialog stats: $correct / $total (${accuracy}%)")
         
         dialogBinding.scoreText.text = "$correct / $total"
         dialogBinding.accuracyText.text = getString(R.string.session_accuracy, accuracy)
@@ -649,42 +650,63 @@ class QuizFragment : Fragment() {
         summaryDialog?.window?.setBackgroundDrawableResource(android.R.color.transparent)
         
         dialogBinding.closeButton.setOnClickListener {
-            android.util.Log.d("QuizFragment", "Close button clicked, isDemoMode: $isDemoMode")
-            summaryDialog?.dismiss()
+            alie.info.newmultichoice.utils.Logger.d("QuizFragment", "Close button clicked, isDemoMode: $isDemoMode")
+            
+            // Safely dismiss dialog
+            try {
+                summaryDialog?.dismiss()
+            } catch (e: Exception) {
+                android.util.Log.e("QuizFragment", "Error dismissing summary dialog", e)
+            }
             summaryDialog = null
             
-            // For demo mode, show upgrade prompt after summary dialog
-            if (isDemoMode) {
-                android.util.Log.d("QuizFragment", "Demo mode: Showing upgrade prompt after summary")
-                binding.root.postDelayed({
+            // Use viewLifecycleOwner to ensure we're on the correct lifecycle
+            viewLifecycleOwner.lifecycleScope.launch {
+                kotlinx.coroutines.delay(200) // Small delay to ensure dialog is dismissed
+                
+                // Check if fragment is still valid before navigation
+                if (!isAdded || isDetached || view == null) {
+                    android.util.Log.w("QuizFragment", "Fragment no longer attached, skipping navigation")
+                    return@launch
+                }
+                
+                // For demo mode, show upgrade prompt after summary dialog
+                if (isDemoMode) {
+                    alie.info.newmultichoice.utils.Logger.d("QuizFragment", "Demo mode: Showing upgrade prompt after summary")
                     if (isAdded && !isDetached && view != null) {
-                        showUpgradePrompt()
+                        try {
+                            showUpgradePrompt()
+                        } catch (e: Exception) {
+                            android.util.Log.e("QuizFragment", "Error showing upgrade prompt", e)
+                        }
                     }
-                }, 300) // Small delay to ensure summary dialog is dismissed
-            } else {
-                android.util.Log.d("QuizFragment", "Not demo mode, navigating to home")
-                // Navigate back to home - only if fragment is still attached
-                if (isAdded && !isDetached && view != null) {
-                    try {
-                        findNavController().navigate(R.id.nav_home)
-                    } catch (e: IllegalStateException) {
-                        android.util.Log.e("QuizFragment", "Navigation failed: Fragment not attached", e)
+                } else {
+                    alie.info.newmultichoice.utils.Logger.d("QuizFragment", "Not demo mode, navigating to home")
+                    // Navigate back to home - only if fragment is still attached
+                    if (isAdded && !isDetached && view != null) {
+                        try {
+                            findNavController().navigate(R.id.nav_home)
+                        } catch (e: IllegalStateException) {
+                            android.util.Log.e("QuizFragment", "Navigation failed: Fragment not attached", e)
+                        } catch (e: Exception) {
+                            android.util.Log.e("QuizFragment", "Navigation error", e)
+                        }
                     }
                 }
             }
         }
         
-        android.util.Log.d("QuizFragment", "Showing summary dialog...")
+        alie.info.newmultichoice.utils.Logger.d("QuizFragment", "Showing summary dialog...")
         try {
             summaryDialog?.show()
-            android.util.Log.d("QuizFragment", "Summary dialog shown successfully")
+            alie.info.newmultichoice.utils.Logger.d("QuizFragment", "Summary dialog shown successfully")
         } catch (e: Exception) {
             android.util.Log.e("QuizFragment", "Error showing summary dialog", e)
         }
     }
     
     private fun showUpgradePrompt() {
-        android.util.Log.d("QuizFragment", "showUpgradePrompt() called")
+        alie.info.newmultichoice.utils.Logger.d("QuizFragment", "showUpgradePrompt() called")
         
         if (!isAdded || isDetached || view == null) {
             android.util.Log.e("QuizFragment", "Fragment not attached, cannot show upgrade prompt")
@@ -700,18 +722,39 @@ class QuizFragment : Fragment() {
                 .create()
             
             dialogBinding.signUpButton.setOnClickListener {
-                android.util.Log.d("QuizFragment", "Sign up button clicked")
+                alie.info.newmultichoice.utils.Logger.d("QuizFragment", "Sign up button clicked")
                 dialog.dismiss()
+                
+                // Show modern loading dialog
+                val loadingBinding = alie.info.newmultichoice.databinding.DialogLoadingBinding.inflate(layoutInflater)
+                loadingBinding.loadingText.text = "Loading..."
+                loadingBinding.loadingSubtitle.text = "Please wait"
+                
+                val loadingDialog = MaterialAlertDialogBuilder(requireContext(), R.style.TransparentDialog)
+                    .setView(loadingBinding.root)
+                    .setCancelable(false)
+                    .create()
+                
+                loadingDialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+                loadingDialog.show()
+                
                 // Clear guest mode
                 authManager.clearGuestMode()
-                // Navigate to AuthActivity
+                
+                // Start AuthActivity and keep loading dialog visible
                 val intent = Intent(requireContext(), AuthActivity::class.java)
+                intent.putExtra("show_loading", true)
                 startActivity(intent)
-                requireActivity().finish()
+                
+                // Dismiss loading dialog after Activity transition completes
+                loadingBinding.root.postDelayed({
+                    loadingDialog.dismiss()
+                    requireActivity().finish()
+                }, 1500) // Wait for Activity to fully load
             }
             
             dialogBinding.maybeLaterButton.setOnClickListener {
-                android.util.Log.d("QuizFragment", "Maybe later button clicked")
+                alie.info.newmultichoice.utils.Logger.d("QuizFragment", "Maybe later button clicked")
                 dialog.dismiss()
                 // Navigate back to home
                 if (isAdded && !isDetached && view != null) {
@@ -724,9 +767,9 @@ class QuizFragment : Fragment() {
             }
             
             dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
-            android.util.Log.d("QuizFragment", "Showing upgrade prompt dialog...")
+            alie.info.newmultichoice.utils.Logger.d("QuizFragment", "Showing upgrade prompt dialog...")
             dialog.show()
-            android.util.Log.d("QuizFragment", "Upgrade prompt dialog shown")
+            alie.info.newmultichoice.utils.Logger.d("QuizFragment", "Upgrade prompt dialog shown")
         } catch (e: Exception) {
             android.util.Log.e("QuizFragment", "Error showing upgrade prompt", e)
         }

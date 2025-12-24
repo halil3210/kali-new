@@ -12,15 +12,44 @@
     android:paddingBottom="@dimen/activity_vertical_margin"
     android:theme="@style/ThemeOverlay.AppCompat.Dark">
 
-    <ImageView
-        android:id="@+id/profileImage"
+    <!-- 3D Rotating Logo Container -->
+    <FrameLayout
+        android:id="@+id/profileImageContainer"
         android:layout_width="72dp"
         android:layout_height="72dp"
-        android:contentDescription="@string/nav_header_desc"
-        android:background="@drawable/profile_image_background"
-        android:padding="2dp"
-        android:scaleType="centerCrop"
-        app:srcCompat="@drawable/klcp_logo" />
+        android:clipChildren="false">
+        
+        <!-- 3D Rotation Container -->
+        <FrameLayout
+            android:id="@+id/logoRotationContainer"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:layout_gravity="center"
+            android:clipChildren="false">
+            
+            <!-- Front Side - App Icon - Centered -->
+            <ImageView
+                android:id="@+id/appLogo"
+                android:layout_width="72dp"
+                android:layout_height="72dp"
+                android:layout_gravity="center"
+                android:src="@mipmap/ic_launcher"
+                android:contentDescription="@string/nav_header_desc"
+                android:scaleType="fitCenter" />
+            
+            <!-- Back Side - KLCP Logo - LARGER and Centered -->
+            <ImageView
+                android:id="@+id/klcpLogo"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:layout_gravity="center"
+                android:src="@drawable/klcp_logo"
+                android:contentDescription="KLCP Logo"
+                android:scaleType="fitCenter"
+                android:alpha="0.0"
+                android:rotationY="180" />
+        </FrameLayout>
+    </FrameLayout>
 
     <TextView
         android:id="@+id/profileName"

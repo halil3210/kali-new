@@ -44,7 +44,7 @@ class SyncManager(private val context: Context) {
                 return@withContext SyncResult.Failure("Server not healthy")
             }
             
-            android.util.Log.d("SyncManager", "✅ Server health OK (uptime: ${healthCheck.body()?.uptime}s)")
+            alie.info.newmultichoice.utils.Logger.d("SyncManager", "✅ Server health OK (uptime: ${healthCheck.body()?.uptime}s)")
             
             // Get local data
             val userId = authManager.getUserId() ?: ""
@@ -67,24 +67,24 @@ class SyncManager(private val context: Context) {
             val response = apiService.uploadUserData(request)
             
             if (response.isSuccessful && response.body()?.success == true) {
-                android.util.Log.d("SyncManager", "✅ Upload successful")
+                alie.info.newmultichoice.utils.Logger.d("SyncManager", "✅ Upload successful")
                 SyncResult.Success("Data uploaded successfully")
             } else {
                 SyncResult.Failure("Upload failed: ${response.message()}")
             }
             
         } catch (e: UnknownHostException) {
-            android.util.Log.w("SyncManager", "❌ Server not reachable (DNS)")
-            RetrofitClient.useSecondaryServer() // Try fallback
+            alie.info.newmultichoice.utils.Logger.w("SyncManager", "❌ Server not reachable (DNS)")
+            RetrofitClient.useIpFallback() // Try IP fallback
             SyncResult.Failure("Server not reachable")
         } catch (e: SocketTimeoutException) {
-            android.util.Log.w("SyncManager", "❌ Connection timeout")
+            alie.info.newmultichoice.utils.Logger.w("SyncManager", "❌ Connection timeout")
             SyncResult.Failure("Connection timeout")
         } catch (e: IOException) {
-            android.util.Log.e("SyncManager", "❌ Network error", e)
+            alie.info.newmultichoice.utils.Logger.e("SyncManager", "❌ Network error", e)
             SyncResult.Failure("Network error: ${e.message}")
         } catch (e: Exception) {
-            android.util.Log.e("SyncManager", "❌ Sync error", e)
+            alie.info.newmultichoice.utils.Logger.e("SyncManager", "❌ Sync error", e)
             SyncResult.Failure("Sync error: ${e.message}")
         }
     }
@@ -110,7 +110,7 @@ class SyncManager(private val context: Context) {
                     // Only update if server data is newer or has better stats
                     if (shouldUpdateLocal(localStats, statsDto)) {
                         repository.updateStatsFromServer(statsDto)
-                        android.util.Log.d("SyncManager", "✅ Downloaded ${downloadData.quizSessions?.size ?: 0} sessions")
+                        alie.info.newmultichoice.utils.Logger.d("SyncManager", "✅ Downloaded ${downloadData.quizSessions?.size ?: 0} sessions")
                         SyncResult.Success("Data downloaded: ${downloadData.quizSessions?.size ?: 0} sessions")
                     } else {
                         SyncResult.Success("Local data is up-to-date")
@@ -121,11 +121,11 @@ class SyncManager(private val context: Context) {
             }
             
         } catch (e: UnknownHostException) {
-            android.util.Log.w("SyncManager", "❌ Server not reachable (DNS)")
+            alie.info.newmultichoice.utils.Logger.w("SyncManager", "❌ Server not reachable (DNS)")
             RetrofitClient.useSecondaryServer()
             SyncResult.Failure("Server not reachable")
         } catch (e: SocketTimeoutException) {
-            android.util.Log.w("SyncManager", "❌ Connection timeout")
+            alie.info.newmultichoice.utils.Logger.w("SyncManager", "❌ Connection timeout")
             SyncResult.Failure("Connection timeout")
         } catch (e: IOException) {
             SyncResult.Failure("Network error: ${e.message}")

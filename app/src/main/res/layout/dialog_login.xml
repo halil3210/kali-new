@@ -1,21 +1,62 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
+    android:layout_height="wrap_content"
+    android:fillViewport="true">
+
+<LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
     android:orientation="vertical"
     android:padding="32dp"
     android:gravity="center"
-    android:background="#1A1A1A">
+    android:background="#1A1A1A"
+    android:minHeight="400dp">
 
-    <!-- Logo -->
-    <ImageView
-        android:layout_width="150dp"
-        android:layout_height="150dp"
-        android:src="@drawable/klcp_logo"
+    <!-- 3D Rotating Logo Container -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/logoContainer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:layout_marginBottom="24dp"
-        android:scaleType="fitCenter" />
+        app:cardCornerRadius="28dp"
+        app:cardElevation="0dp"
+        app:cardBackgroundColor="@android:color/transparent"
+        app:strokeWidth="0dp"
+        android:padding="8dp">
+        
+        <!-- 3D Rotation Container -->
+        <FrameLayout
+            android:id="@+id/logoRotationContainer"
+            android:layout_width="180dp"
+            android:layout_height="180dp"
+            android:clipChildren="false">
+            
+            <!-- Front Side - App Icon - Centered (same size as home) -->
+            <ImageView
+                android:id="@+id/appLogo"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:layout_gravity="center"
+                android:src="@mipmap/ic_launcher"
+                android:contentDescription="@string/app_name"
+                android:scaleType="fitCenter" />
+            
+            <!-- Back Side - KLCP Logo - LARGER and Centered -->
+            <ImageView
+                android:id="@+id/klcpLogo"
+                android:layout_width="180dp"
+                android:layout_height="180dp"
+                android:layout_gravity="center"
+                android:src="@drawable/klcp_logo"
+                android:contentDescription="KLCP Logo"
+                android:scaleType="fitCenter"
+                android:alpha="0.0"
+                android:rotationY="180" />
+        </FrameLayout>
+    </com.google.android.material.card.MaterialCardView>
 
     <!-- Title -->
     <TextView
@@ -131,13 +172,7 @@
         android:textColor="#FFFFFF"
         app:cornerRadius="12dp"
         app:backgroundTint="#4CAF50"
-        android:layout_marginBottom="24dp" />
-
-    <!-- Spacer -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:layout_marginBottom="16dp" />
 
     <!-- Divider -->
     <View
@@ -155,7 +190,13 @@
         android:textSize="16sp"
         android:textColor="#4CAF50"
         android:layout_gravity="center"
-        android:padding="16dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="12dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:clickable="true"
+        android:focusable="true"
         android:background="?attr/selectableItemBackground" />
 
 </LinearLayout>
+</ScrollView>

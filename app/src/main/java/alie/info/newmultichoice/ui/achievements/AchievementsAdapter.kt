@@ -3,20 +3,22 @@ package alie.info.newmultichoice.ui.achievements
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.recyclerview.widget.AsyncDifferConfig
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import alie.info.newmultichoice.data.Achievement
 import alie.info.newmultichoice.databinding.ItemAchievementBinding
+import java.util.concurrent.Executors
 
-class AchievementsAdapter : ListAdapter<Achievement, AchievementsAdapter.ViewHolder>(AchievementDiffCallback()) {
+class AchievementsAdapter : ListAdapter<Achievement, AchievementsAdapter.ViewHolder>(
+    AsyncDifferConfig.Builder(AchievementDiffCallback())
+        .setBackgroundThreadExecutor(Executors.newSingleThreadExecutor())
+        .build()
+) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val binding = ItemAchievementBinding.inflate(
-            LayoutInflater.from(parent.context),
-            parent,
-            false
-        )
+        val binding = ItemAchievementBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         return ViewHolder(binding)
     }
 

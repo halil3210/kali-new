@@ -18,6 +18,12 @@ interface ApiService {
     
     @GET("api/health")
     suspend fun healthCheck(): Response<HealthResponse>
+
+    @GET("api/version/check")
+    suspend fun checkVersionCompatibility(
+        @Query("appVersion") appVersion: String,
+        @Query("platform") platform: String = "android"
+    ): Response<VersionResponse>
     
     // ============================================
     // SYNC ENDPOINTS

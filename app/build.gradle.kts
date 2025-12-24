@@ -33,9 +33,11 @@ android {
     signingConfigs {
         create("release") {
             storeFile = file(localProperties.getProperty("storeFile", "../klcp-release-key.jks"))
-            storePassword = localProperties.getProperty("storePassword", "klcp2024secure")
+            storePassword = localProperties.getProperty("storePassword")
+                ?: throw GradleException("storePassword must be set in local.properties")
             keyAlias = localProperties.getProperty("keyAlias", "klcp-key")
-            keyPassword = localProperties.getProperty("keyPassword", "klcp2024secure")
+            keyPassword = localProperties.getProperty("keyPassword")
+                ?: throw GradleException("keyPassword must be set in local.properties")
         }
     }
 
@@ -48,6 +50,10 @@ android {
                 "proguard-rules.pro"
             )
             signingConfig = signingConfigs.getByName("release")
+        }
+        debug {
+            // Keep debug builds fast, only optimize in release
+            // isShrinkResources = true // Removed for debug performance
         }
     }
     compileOptions {
@@ -100,6 +106,10 @@ dependencies {
     // Animations & Modern UI
     implementation(libs.lottie)
     implementation("nl.dionsegijn:konfetti-xml:2.0.4")
+    implementation("com.facebook.shimmer:shimmer:0.5.0")
+
+    // Image loading and optimization
+    implementation("io.coil-kt:coil:2.5.0")
     
     // WorkManager for notifications
     implementation("androidx.work:work-runtime-ktx:2.9.0")
@@ -110,8 +120,7 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
     
-    // Google Sign-In
-    implementation("com.google.android.gms:play-services-auth:21.0.0")
+    // Google Sign-In REMOVED - Causes emulator crashes
     
     // Splash Screen
     implementation(libs.androidx.splashscreen)

@@ -40,6 +40,9 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
     private var _correctAnswersCount = 0
     private var _wrongAnswersCount = 0
     private var _currentLanguage = "en"
+
+    // Data prefetching
+    private var _nextQuestion: Question? = null
     
     private var sessionStartTime: Long = 0
     private var currentSessionId: Long = 0
@@ -104,7 +107,7 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
                     isCompleted = false // Session starts as incomplete
                 )
                 currentSessionId = repository.saveSession(session)
-                android.util.Log.d("QuizViewModel", "New session created with ID: $currentSessionId")
+                alie.info.newmultichoice.utils.Logger.d("QuizViewModel", "New session created with ID: $currentSessionId")
             } catch (e: Exception) {
                 android.util.Log.e("QuizViewModel", "Error creating session", e)
             }
@@ -194,14 +197,17 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
                 if (loadedQuestions.isNotEmpty()) {
                     _currentQuestionIndex = 0
                     sessionStartTime = System.currentTimeMillis()
-                    
+
                     // Emit Success state with first question
                     emitSuccessState()
-                    
+
                     // Backward compatibility (extra safety)
                     _currentQuestionLiveData.value = loadedQuestions.getOrNull(0)
                     _currentQuestionIndexLiveData.value = 0
                     _languageLiveData.value = _currentLanguage
+
+                    // Start prefetching next question
+                    prefetchNextQuestion()
                 } else {
                     // Emit Error state
                     val errorMessage = if (isPracticeMode) {
@@ -322,18 +328,31 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
      */
     fun nextQuestion() {
         android.util.Log.d("QuizViewModel", "nextQuestion() called: currentIndex=${_currentQuestionIndex}, totalQuestions=${_questions.size}")
-        
+
         if (_currentQuestionIndex < _questions.size - 1) {
             _currentQuestionIndex++
             _selectedAnswer = null
             _isAnswerSubmitted = false
-            
+
+            // Check if we have a prefetched next question
+            if (_nextQuestion != null && _currentQuestionIndex < _questions.size) {
+                // Use prefetched question if available and correct index
+                val expectedIndex = _currentQuestionIndex
+                if (_nextQuestion?.id == _questions.getOrNull(expectedIndex)?.id) {
+                    android.util.Log.d("QuizViewModel", "Using prefetched question for index $expectedIndex")
+                }
+                _nextQuestion = null // Reset prefetch
+            }
+
             // Emit updated state
             emitSuccessState()
-            
+
             // Backward compatibility (extra safety with getOrNull)
             _currentQuestionIndexLiveData.value = _currentQuestionIndex
             _currentQuestionLiveData.value = _questions.getOrNull(_currentQuestionIndex)
+
+            // Prefetch next question in background
+            prefetchNextQuestion()
         } else {
             // Quiz completed - this is the last question
             android.util.Log.d("QuizViewModel", "Last question answered, finishing quiz...")
@@ -342,6 +361,26 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
     
+    /**
+     * Prefetch next question in background for faster loading
+     */
+    private fun prefetchNextQuestion() {
+        val nextIndex = _currentQuestionIndex + 1
+        if (nextIndex < _questions.size && _nextQuestion == null) {
+            viewModelScope.launch {
+                try {
+                    // Get next question from already loaded questions (no DB call needed)
+                    _questions.getOrNull(nextIndex)?.let { nextQuestion ->
+                        _nextQuestion = nextQuestion
+                        android.util.Log.d("QuizViewModel", "Prefetched question ${nextQuestion.id} for index $nextIndex")
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("QuizViewModel", "Error prefetching next question", e)
+                }
+            }
+        }
+    }
+
     /**
      * Go to previous question (for review)
      */

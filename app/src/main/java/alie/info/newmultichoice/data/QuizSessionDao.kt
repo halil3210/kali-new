@@ -31,5 +31,4 @@ interface QuizSessionDao {
     @Query("DELETE FROM quiz_sessions WHERE userId = :userId")
     suspend fun deleteAllSessions(userId: String)
 }
-}
 

@@ -17,4 +17,7 @@
     <color name="error_red_transparent">#40F44336</color>
     <color name="warning_yellow">#FFC107</color>
     <color name="info_blue">#2196F3</color>
+
+    <!-- Shimmer colors -->
+    <color name="shimmer_placeholder">#DDDDDD</color>
 </resources>

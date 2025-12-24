@@ -18,12 +18,13 @@ import javax.net.ssl.X509TrustManager
  * 2. Heimnetzwerk: http://192.168.178.27:3000 (fallback)
  */
 object RetrofitClient {
-    
-    // Production Server URL with Let's Encrypt HTTPS
-    private const val PRIMARY_BASE_URL = "https://klcp.alie.info/"
-    private const val SECONDARY_BASE_URL = "https://klcp.alie.info/"
-    
-    private var currentBaseUrl = PRIMARY_BASE_URL
+
+    // Production Server URLs
+    private const val PRIMARY_DOMAIN = "https://klcp.alie.info/"
+    private const val SECONDARY_DOMAIN = "https://klcp.alie.info/"
+    private const val FALLBACK_IP_HTTP = "http://188.245.153.241/"  // HTTP fallback to IP
+
+    private var currentBaseUrl = PRIMARY_DOMAIN
     
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         // Enable logging in debug builds
@@ -41,11 +42,22 @@ object RetrofitClient {
             try {
                 chain.proceed(request)
             } catch (e: Exception) {
-                // If primary fails, try secondary
-                if (currentBaseUrl == PRIMARY_BASE_URL) {
-                    android.util.Log.w("RetrofitClient", "Primary server failed, trying secondary...")
-                    currentBaseUrl = SECONDARY_BASE_URL
-                    getApiService() // Recreate with new URL
+                // Implement cascading fallback: Domain HTTPS -> Domain HTTPS -> IP HTTP
+                when (currentBaseUrl) {
+                    PRIMARY_DOMAIN -> {
+                        alie.info.newmultichoice.utils.Logger.w("RetrofitClient", "Primary domain failed, trying secondary domain...")
+                        currentBaseUrl = SECONDARY_DOMAIN
+                        getApiService() // Recreate with new URL
+                    }
+                    SECONDARY_DOMAIN -> {
+                        alie.info.newmultichoice.utils.Logger.w("RetrofitClient", "Secondary domain failed, falling back to IP (HTTP)...")
+                        currentBaseUrl = FALLBACK_IP_HTTP
+                        getApiService() // Recreate with HTTP fallback
+                    }
+                    else -> {
+                        alie.info.newmultichoice.utils.Logger.e("RetrofitClient", "All server endpoints failed")
+                        throw e
+                    }
                 }
                 throw e
             }
@@ -80,15 +92,23 @@ object RetrofitClient {
      * Switch to secondary server URL
      */
     fun useSecondaryServer() {
-        currentBaseUrl = SECONDARY_BASE_URL
+        currentBaseUrl = SECONDARY_DOMAIN
         retrofit = null // Force recreate
     }
-    
+
     /**
      * Switch to primary server URL
      */
     fun usePrimaryServer() {
-        currentBaseUrl = PRIMARY_BASE_URL
+        currentBaseUrl = PRIMARY_DOMAIN
+        retrofit = null // Force recreate
+    }
+
+    /**
+     * Force fallback to IP address (HTTP)
+     */
+    fun useIpFallback() {
+        currentBaseUrl = FALLBACK_IP_HTTP
         retrofit = null // Force recreate
     }
     
