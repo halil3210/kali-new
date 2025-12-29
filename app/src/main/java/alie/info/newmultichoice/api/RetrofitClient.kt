@@ -19,48 +19,40 @@ import javax.net.ssl.X509TrustManager
  */
 object RetrofitClient {
 
-    // Production Server URLs
-    private const val PRIMARY_DOMAIN = "https://klcp.alie.info/"
-    private const val SECONDARY_DOMAIN = "https://klcp.alie.info/"
-    private const val FALLBACK_IP_HTTP = "http://188.245.153.241/"  // HTTP fallback to IP
+    // Development Server URLs (HTTP for local testing)
+    private const val LOCAL_DEVELOPMENT = "http://localhost:3000/"  // Local development server
 
-    private var currentBaseUrl = PRIMARY_DOMAIN
+    // Production Server URLs
+    private const val PRIMARY_DOMAIN = "https://klcp.alie.info/"  // HTTPS subdomain with Let's Encrypt
+    private const val SECONDARY_DOMAIN = "https://188.245.153.241/"  // IP fallback (HTTPS)
+    private const val FALLBACK_IP_HTTP = "http://188.245.153.241:3000/"  // Direct IP HTTP fallback
+
+    private var currentBaseUrl = PRIMARY_DOMAIN  // Start with HTTPS subdomain
     
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         // Enable logging in debug builds
         level = HttpLoggingInterceptor.Level.BODY
     }
-    
+
     private val okHttpClient = OkHttpClient.Builder()
         .addInterceptor(loggingInterceptor)
         .connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)
         .retryOnConnectionFailure(true)
-        .addInterceptor { chain ->
-            val request = chain.request()
-            try {
-                chain.proceed(request)
-            } catch (e: Exception) {
-                // Implement cascading fallback: Domain HTTPS -> Domain HTTPS -> IP HTTP
-                when (currentBaseUrl) {
-                    PRIMARY_DOMAIN -> {
-                        alie.info.newmultichoice.utils.Logger.w("RetrofitClient", "Primary domain failed, trying secondary domain...")
-                        currentBaseUrl = SECONDARY_DOMAIN
-                        getApiService() // Recreate with new URL
-                    }
-                    SECONDARY_DOMAIN -> {
-                        alie.info.newmultichoice.utils.Logger.w("RetrofitClient", "Secondary domain failed, falling back to IP (HTTP)...")
-                        currentBaseUrl = FALLBACK_IP_HTTP
-                        getApiService() // Recreate with HTTP fallback
-                    }
-                    else -> {
-                        alie.info.newmultichoice.utils.Logger.e("RetrofitClient", "All server endpoints failed")
-                        throw e
-                    }
-                }
-                throw e
+        .apply {
+            // Allow self-signed certificates for development
+            val trustManager = object : X509TrustManager {
+                override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
+                override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
+                override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
             }
+
+            val sslContext = SSLContext.getInstance("TLS")
+            sslContext.init(null, arrayOf<TrustManager>(trustManager), null)
+
+            sslSocketFactory(sslContext.socketFactory, trustManager)
+            hostnameVerifier { _, _ -> true }
         }
         .build()
     
@@ -116,5 +108,21 @@ object RetrofitClient {
      * Get current base URL
      */
     fun getCurrentBaseUrl(): String = currentBaseUrl
+
+    /**
+     * Temporarily use a custom URL for fallback
+     */
+    fun useCustomUrl(url: String) {
+        currentBaseUrl = url
+        retrofit = null // Force recreation
+    }
+
+    /**
+     * Reset to default URL (starts with local development)
+     */
+    fun resetToDefault() {
+        currentBaseUrl = LOCAL_DEVELOPMENT
+        retrofit = null
+    }
 }
 

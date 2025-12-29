@@ -19,7 +19,6 @@ import alie.info.newmultichoice.R
 import alie.info.newmultichoice.auth.AuthManager
 import alie.info.newmultichoice.data.QuizRepository
 import alie.info.newmultichoice.databinding.FragmentHomeBinding
-import alie.info.newmultichoice.databinding.DialogFirstLaunchBinding
 import alie.info.newmultichoice.databinding.DialogLoadingBinding
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -61,46 +60,16 @@ class HomeFragment : Fragment() {
             authManager = AuthManager.getInstance(requireContext())
             
             // Check if first launch
-            checkAndShowFirstLaunchDialog()
-
             // Show loading shimmer
             showLoading()
 
             setupUI()
             setupBackPressHandler()
-            
+
             isUIInitialized = true
         }
     }
     
-    private fun checkAndShowFirstLaunchDialog() {
-        val sharedPrefs = requireContext().getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-        val isFirstLaunch = sharedPrefs.getBoolean("is_first_launch", true)
-        
-        if (isFirstLaunch) {
-            showFirstLaunchDialog()
-            // Mark as not first launch
-            sharedPrefs.edit().putBoolean("is_first_launch", false).apply()
-        }
-    }
-    
-    private fun showFirstLaunchDialog() {
-        val dialogBinding = DialogFirstLaunchBinding.inflate(layoutInflater)
-        
-        val dialog = MaterialAlertDialogBuilder(requireContext(), R.style.TransparentDialog)
-            .setView(dialogBinding.root)
-            .setCancelable(false)
-            .create()
-        
-        dialogBinding.getStartedButton.setOnClickListener {
-            dialog.dismiss()
-        }
-        
-        // Make dialog background transparent
-        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
-        
-        dialog.show()
-    }
 
     private fun showLoading() {
         shimmerContainer.visibility = View.VISIBLE
@@ -379,10 +348,8 @@ class HomeFragment : Fragment() {
             loadingDialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
             loadingDialog.show()
             
-            // Start AuthActivity and keep loading dialog visible
-            val intent = android.content.Intent(requireContext(), alie.info.newmultichoice.auth.AuthActivity::class.java)
-            intent.putExtra("show_loading", true)
-            startActivity(intent)
+            // Navigate to auth fragment instead
+            findNavController().navigate(R.id.authFragment)
             
             // Dismiss loading dialog after Activity transition completes
             loadingBinding.root.postDelayed({
@@ -503,6 +470,8 @@ class HomeFragment : Fragment() {
             )
         }
     }
+
+
 
     override fun onDestroyView() {
         super.onDestroyView()

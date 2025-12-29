@@ -31,7 +31,6 @@ import androidx.appcompat.app.AppCompatDelegate
 import alie.info.newmultichoice.databinding.DialogLoadingBinding
 import androidx.core.view.WindowCompat
 import androidx.core.view.GravityCompat
-import alie.info.newmultichoice.auth.AuthActivity
 import alie.info.newmultichoice.auth.AuthManager
 import alie.info.newmultichoice.auth.ProfileManager
 import alie.info.newmultichoice.utils.VersionManager
@@ -53,10 +52,15 @@ class MainActivity : AppCompatActivity() {
         // Install splash screen (Material You style)
         val splashScreen = installSplashScreen()
         
-        // Skip splash screen if requested (e.g., from guest mode)
+        // Check if coming from login animation
+        val fromLoginAnimation = intent.getBooleanExtra("from_login_animation", false)
         val skipSplash = intent.getBooleanExtra("skip_splash", false)
-        
-        if (skipSplash) {
+
+        if (fromLoginAnimation) {
+            // Coming from login animation - keep splash screen visible initially
+            // It will be controlled by the animation timing
+            splashScreen.setKeepOnScreenCondition { false }
+        } else if (skipSplash) {
             // Immediately hide splash screen
             splashScreen.setKeepOnScreenCondition { false }
         } else {
@@ -94,8 +98,6 @@ class MainActivity : AppCompatActivity() {
         val navView: NavigationView = binding.navView
         val navController = findNavController(R.id.nav_host_fragment_content_main)
         
-        // Request notification permission (Android 13+)
-        alie.info.newmultichoice.utils.NotificationPermissionHelper.requestNotificationPermission(this)
         
         // Schedule background sync - TEMPORARILY DISABLED TO PREVENT EMULATOR CRASHES
         // alie.info.newmultichoice.sync.SyncWorker.schedulePeriodicSync(this)
@@ -221,10 +223,11 @@ class MainActivity : AppCompatActivity() {
             }
         }
         
-        // Hide menu bubble when in quiz
+        // Hide menu bubble when in quiz or auth
         navController.addOnDestinationChangedListener { _, destination, _ ->
             when (destination.id) {
-                R.id.quizFragment -> {
+                R.id.quizFragment,
+                R.id.authFragment -> {
                     binding.appBarMain.menuBubble.visibility = View.GONE
                 }
                 else -> {
@@ -322,8 +325,243 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun performLogout() {
+        // Start logout animation instead of immediate restart
+        animateLogoutSuccess()
+    }
+
+    /**
+     * Animate successful logout - similar to login animation but reverse effects
+     */
+    private fun animateLogoutSuccess() {
+        try {
+            android.util.Log.d("MainActivity", "🚪 Starting logout animation")
+
+            // Get screen dimensions
+            val displayMetrics = resources.displayMetrics
+            val density = displayMetrics.density
+            val screenWidth = displayMetrics.widthPixels.toFloat()
+            val screenHeight = displayMetrics.heightPixels.toFloat()
+
+            // Calculate scale factor (smaller than login - logout effect)
+            val maxDimension = maxOf(screenWidth, screenHeight)
+            val logoSize = 180f * density
+            val scaleFactor = (maxDimension / logoSize) * 0.8f // Smaller scale for logout
+
+            // Create animated logo overlay (similar to login animation)
+            val rootView = window.decorView as android.view.ViewGroup
+
+            // Create logo container programmatically
+            val animatedLogoContainer = android.widget.FrameLayout(this).apply {
+                layoutParams = android.view.ViewGroup.LayoutParams(
+                    android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+                    android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+            }
+
+            // Create app logo (front) - same as login dialog
+            val animatedAppLogo = android.widget.ImageView(this).apply {
+                setImageResource(R.mipmap.ic_launcher) // Same as login dialog
+                layoutParams = android.widget.FrameLayout.LayoutParams(
+                    (100 * density).toInt(), // Same size as login dialog
+                    (100 * density).toInt()
+                ).apply {
+                    gravity = android.view.Gravity.CENTER
+                }
+            }
+
+            // Create KLCP logo (back) - same as login dialog
+            val animatedKlcpLogo = android.widget.ImageView(this).apply {
+                setImageResource(R.drawable.klcp_logo) // Same as login dialog
+                layoutParams = android.widget.FrameLayout.LayoutParams(
+                    (180 * density).toInt(), // Same size as login dialog
+                    (180 * density).toInt()
+                ).apply {
+                    gravity = android.view.Gravity.CENTER
+                }
+                alpha = 0f // Initially invisible
+                rotationY = 180f // Same rotation as login dialog
+            }
+
+            animatedLogoContainer.addView(animatedAppLogo)
+            animatedLogoContainer.addView(animatedKlcpLogo)
+
+            // Add to root view
+            rootView.addView(animatedLogoContainer)
+
+            // Create overlay background
+            val overlayView = android.view.View(this).apply {
+                setBackgroundColor(android.graphics.Color.parseColor("#B3000000"))
+                layoutParams = android.view.ViewGroup.LayoutParams(
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT
+                )
+                alpha = 0f
+            }
+            rootView.addView(overlayView)
+
+            // Position logo at center
+            animatedLogoContainer.post {
+                val screenCenterX = screenWidth / 2f
+                val screenCenterY = screenHeight / 2f
+
+                animatedLogoContainer.x = screenCenterX - animatedLogoContainer.width / 2f
+                animatedLogoContainer.y = screenCenterY - animatedLogoContainer.height / 2f
+
+                // Start 3D rotation (same as login)
+                val rotationAnimator = android.animation.ObjectAnimator.ofFloat(animatedLogoContainer, "rotationY", 0f, 360f).apply {
+                    duration = 3000
+                    repeatCount = android.animation.ValueAnimator.INFINITE
+                    interpolator = android.view.animation.LinearInterpolator()
+                }
+
+                // Update alpha values during rotation (same as login)
+                rotationAnimator.addUpdateListener { animator ->
+                    val rotation = animator.animatedValue as Float
+                    val normalizedRotation = (rotation % 360f)
+
+                    // Front logo visible from -90 to 90 degrees
+                    // Back logo visible from 90 to 270 degrees
+                    when {
+                        normalizedRotation < 90f -> {
+                            // Front side visible
+                            val alpha = 1f - (normalizedRotation / 90f) * 0.5f
+                            animatedAppLogo.alpha = alpha.coerceIn(0.5f, 1f)
+                            animatedKlcpLogo.alpha = (normalizedRotation / 90f) * 0.5f
+                        }
+                        normalizedRotation < 180f -> {
+                            // Back side becoming visible
+                            val progress = (normalizedRotation - 90f) / 90f
+                            animatedAppLogo.alpha = 0.5f - progress * 0.5f
+                            animatedKlcpLogo.alpha = 0.5f + progress * 0.5f
+                        }
+                        normalizedRotation < 270f -> {
+                            // Back side visible
+                            val progress = (normalizedRotation - 180f) / 90f
+                            animatedAppLogo.alpha = progress * 0.5f
+                            animatedKlcpLogo.alpha = 1f - progress * 0.5f
+                        }
+                        else -> {
+                            // Front side becoming visible again
+                            val progress = (normalizedRotation - 270f) / 90f
+                            animatedAppLogo.alpha = 0.5f + progress * 0.5f
+                            animatedKlcpLogo.alpha = 0.5f - progress * 0.5f
+                        }
+                    }
+                }
+
+                rotationAnimator.start()
+
+                // Animate overlay fade in
+                overlayView.animate()
+                    .alpha(1f)
+                    .setDuration(200)
+                    .withStartAction {
+                        overlayView.bringToFront()
+                        animatedLogoContainer.bringToFront()
+                    }
+                    .start()
+
+                // Scale up animation (but smaller than login)
+                animatedLogoContainer.animate()
+                    .scaleX(scaleFactor)
+                    .scaleY(scaleFactor)
+                    .setDuration(2500)
+                    .setInterpolator(android.view.animation.DecelerateInterpolator())
+                    .withEndAction {
+                        // Stop rotation and shrink logo back
+                        rotationAnimator.cancel()
+                        overlayView.animate()
+                            .alpha(0f)
+                            .setDuration(300)
+                            .withEndAction {
+                                rootView.removeView(overlayView)
+                            }
+                            .start()
+
+                        // Shrink logo back to nothing
+                        animatedLogoContainer.animate()
+                            .scaleX(0f)
+                            .scaleY(0f)
+                            .setDuration(800)
+                            .withEndAction {
+                                rootView.removeView(animatedLogoContainer)
+
+                                // NOW perform actual logout and restart
+                                performActualLogout()
+                            }
+                            .start()
+                    }
+                    .start()
+            }
+
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "Error in logout animation", e)
+            // Fallback: perform logout without animation
+            performActualLogout()
+        }
+    }
+
+    private fun performActualLogout() {
+        android.util.Log.d("MainActivity", "🔄 PERFORMING ACTUAL LOGOUT - clearing all data")
+
+        // 🚨 CRITICAL: Clean ALL animation views before restart
+        try {
+            val rootView = window.decorView as android.view.ViewGroup
+            val contentView = findViewById<android.view.ViewGroup>(android.R.id.content)
+
+            // Remove ALL FrameLayouts without tags (animation overlays)
+            val viewsToClean = mutableListOf<android.view.View>()
+
+            // Clean decorView
+            for (i in rootView.childCount - 1 downTo 0) {
+                val child = rootView.getChildAt(i)
+                if (child is android.widget.FrameLayout && child.tag == null) {
+                    viewsToClean.add(child)
+                }
+            }
+
+            // Clean contentView
+            for (i in contentView.childCount - 1 downTo 0) {
+                val child = contentView.getChildAt(i)
+                if (child is android.widget.FrameLayout && child.tag == null) {
+                    viewsToClean.add(child)
+                }
+            }
+
+            viewsToClean.forEach { view ->
+                try {
+                    (view.parent as? android.view.ViewGroup)?.removeView(view)
+                    android.util.Log.d("MainActivity", "🧹 Cleaned leftover view: ${view.javaClass.simpleName}")
+                } catch (e: Exception) {
+                    android.util.Log.e("MainActivity", "Error cleaning view", e)
+                }
+            }
+
+            android.util.Log.d("MainActivity", "🧹 Logout cleanup: Removed ${viewsToClean.size} views")
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "Error in logout cleanup", e)
+        }
+
+        // Clear all auth data
         authManager.logout()
-        navigateToAuth()
+        authManager.clearGuestMode()
+
+        // Force clear any cached login state
+        val authPrefs = getSharedPreferences("auth_prefs", MODE_PRIVATE)
+        authPrefs.edit().clear().apply()
+
+        // Clear app preferences that might affect login state
+        val appPrefs = getSharedPreferences("app_prefs", MODE_PRIVATE)
+        appPrefs.edit().clear().apply() // Remove skip_animation
+
+        // 🚨 CRITICAL: Force complete app restart to clean state
+        val intent = Intent(this, MainActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        intent.putExtra("force_clean_start", true) // Signal for clean start
+        startActivity(intent)
+
+        // Kill current process to ensure complete cleanup
+        android.os.Process.killProcess(android.os.Process.myPid())
     }
     
     private fun performDeleteAccount() {
@@ -331,12 +569,12 @@ class MainActivity : AppCompatActivity() {
             try {
                 val result = authManager.deleteAccount()
                 when (result) {
-                    is alie.info.newmultichoice.auth.AuthResult.Success -> {
+                    is alie.info.newmultichoice.auth.AuthResult.Success<*> -> {
                         Snackbar.make(binding.root, "Account deleted", Snackbar.LENGTH_SHORT).show()
                         navigateToAuth()
                     }
                     is alie.info.newmultichoice.auth.AuthResult.Error -> {
-                        Snackbar.make(binding.root, "Error: ${result.message}", Snackbar.LENGTH_LONG).show()
+                        Snackbar.make(binding.root, "Error: ${result.error.getUserMessage()}", Snackbar.LENGTH_LONG).show()
                     }
                 }
             } catch (e: Exception) {
@@ -346,10 +584,9 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun navigateToAuth() {
-        val intent = Intent(this, AuthActivity::class.java)
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-        startActivity(intent)
-        finish()
+        // Navigate to auth fragment instead of starting AuthActivity
+        val navController = findNavController(R.id.nav_host_fragment_content_main)
+        navController.navigate(R.id.authFragment)
     }
     
     private fun setupProfileHeader(navView: NavigationView, drawerLayout: DrawerLayout) {
@@ -523,10 +760,9 @@ class MainActivity : AppCompatActivity() {
                 // Clear guest mode
                 authManager.clearGuestMode()
                 
-                // Start AuthActivity and keep loading dialog visible
-                val intent = Intent(this, AuthActivity::class.java)
-                intent.putExtra("show_loading", true)
-                startActivity(intent)
+                // Navigate to auth fragment instead
+                val navController = findNavController(R.id.nav_host_fragment_content_main)
+                navController.navigate(R.id.authFragment)
                 
                 // Dismiss loading dialog after Activity transition completes
                 loadingBinding.root.postDelayed({

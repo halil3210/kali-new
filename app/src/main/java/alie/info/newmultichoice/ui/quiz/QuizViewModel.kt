@@ -707,6 +707,52 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
     }
     
     /**
+     * Navigate to a specific question index
+     */
+    fun navigateToQuestion(questionIndex: Int) {
+        if (questionIndex >= 0 && questionIndex < _questions.size) {
+            // Reset UI state for new question
+            _selectedAnswer = null
+            _isAnswerSubmitted = false
+
+            // Update index
+            _currentQuestionIndex = questionIndex
+
+            // Update UI state
+            updateUiState()
+
+            // Backward compatibility
+            _currentQuestionIndexLiveData.value = _currentQuestionIndex
+            _currentQuestionLiveData.value = _questions.getOrNull(_currentQuestionIndex)
+        }
+    }
+
+    /**
+     * Update the UI state with current values
+     */
+    private fun updateUiState() {
+        if (_questions.isNotEmpty() && _currentQuestionIndex < _questions.size) {
+            _uiState.value = QuizUiState.Success(
+                currentQuestion = _questions[_currentQuestionIndex],
+                currentQuestionIndex = _currentQuestionIndex,
+                totalQuestions = _questions.size,
+                selectedAnswer = _selectedAnswer,
+                isAnswerSubmitted = _isAnswerSubmitted,
+                correctAnswersCount = _correctAnswersCount,
+                wrongAnswersCount = _wrongAnswersCount,
+                quizCompleted = false,
+                language = _currentLanguage,
+                feedbackState = null // No feedback for navigation
+            )
+        }
+    }
+
+    /**
+     * Get total number of questions
+     */
+    fun getTotalQuestions(): Int = _questions.size
+
+    /**
      * Get current progress as percentage
      */
     fun getProgress(): Int {

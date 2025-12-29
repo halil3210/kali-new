@@ -7,9 +7,11 @@ import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.graphics.Paint
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.NumberPicker
 import android.view.animation.AnimationUtils
 import android.view.animation.OvershootInterpolator
 import android.widget.RadioButton
@@ -27,7 +29,6 @@ import alie.info.newmultichoice.databinding.FragmentQuizBinding
 import alie.info.newmultichoice.databinding.DialogQuizSummaryBinding
 import alie.info.newmultichoice.databinding.DialogUpgradePromptBinding
 import alie.info.newmultichoice.databinding.DialogLoadingBinding
-import alie.info.newmultichoice.auth.AuthActivity
 import alie.info.newmultichoice.auth.AuthManager
 import alie.info.newmultichoice.utils.HapticFeedbackHelper
 import com.google.android.material.card.MaterialCardView
@@ -51,7 +52,6 @@ class QuizFragment : Fragment() {
     private val autoNextHandler = Handler(Looper.getMainLooper())
     
     // Dialog reference to dismiss on destroy
-    private var summaryDialog: androidx.appcompat.app.AlertDialog? = null
     
     // Local state for backward compatibility
     private var isAnswerSubmittedLocal = false
@@ -62,9 +62,12 @@ class QuizFragment : Fragment() {
     
     // Navigation arguments
     private val args: QuizFragmentArgs by navArgs()
-    
+
     // Demo mode flag
     private var isDemoMode = false
+
+    // Practice mode flag
+    private var isPracticeMode = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -90,6 +93,7 @@ class QuizFragment : Fragment() {
         
         // Start quiz with specified mode
         val practiceMode = args.practiceMode
+        isPracticeMode = practiceMode
         viewModel.startQuiz(practiceMode, isDemoMode, demoLimit)
         
         setupUI()
@@ -434,6 +438,15 @@ class QuizFragment : Fragment() {
                     state.currentQuestionIndex + 1,
                     state.totalQuestions
                 )
+
+                // Make question counter clickable to jump to any question
+                binding.questionCounter.setOnClickListener {
+                    showQuestionNavigatorDialog()
+                }
+
+                // Make it look clickable
+                binding.questionCounter.setTextColor(ContextCompat.getColor(requireContext(), R.color.md_theme_light_primary))
+                // Removed underline - just using color to indicate it's clickable
                 
                 // Update navigation buttons visibility
                 binding.previousButton.isEnabled = state.currentQuestionIndex > 0
@@ -460,27 +473,55 @@ class QuizFragment : Fragment() {
             }
             
             is QuizUiState.Error -> {
-                // Show error message
-                binding.loadingIndicator.visibility = View.GONE
-                binding.feedbackCard.visibility = View.VISIBLE
-                binding.feedbackTitle.text = getString(R.string.error)
-                binding.feedbackMessage.text = state.message
-                context?.let { ctx ->
-                    binding.feedbackCard.setCardBackgroundColor(
-                        ContextCompat.getColor(ctx, R.color.error_red)
-                    )
-                }
-                
-                // Optionally navigate back after showing error (with safety check)
-                binding.root.postDelayed({
+                // Handle practice mode error differently
+                if (isPracticeMode && state.message.contains("No wrong answers found")) {
+                    // Show toast and navigate back immediately for practice mode
+                    binding.loadingIndicator.visibility = View.GONE
+                    context?.let { ctx ->
+                        android.widget.Toast.makeText(
+                            ctx,
+                            "No wrong answers to practice!\nComplete a quiz first.",
+                            android.widget.Toast.LENGTH_LONG
+                        ).show()
+                    }
+
+                    // Navigate back to home immediately
                     if (isAdded && !isDetached && view != null) {
                         try {
-                            findNavController().navigateUp()
+                            findNavController().navigate(R.id.nav_home)
                         } catch (e: IllegalStateException) {
-                            android.util.Log.e("QuizFragment", "Navigation failed after error", e)
+                            android.util.Log.e("QuizFragment", "Navigation failed after practice mode error", e)
+                            // Fallback: try to go back
+                            try {
+                                findNavController().navigateUp()
+                            } catch (e2: Exception) {
+                                android.util.Log.e("QuizFragment", "Fallback navigation also failed", e2)
+                            }
                         }
                     }
-                }, 3000)
+                } else {
+                    // Show error message for other errors
+                    binding.loadingIndicator.visibility = View.GONE
+                    binding.feedbackCard.visibility = View.VISIBLE
+                    binding.feedbackTitle.text = getString(R.string.error)
+                    binding.feedbackMessage.text = state.message
+                    context?.let { ctx ->
+                        binding.feedbackCard.setCardBackgroundColor(
+                            ContextCompat.getColor(ctx, R.color.error_red)
+                        )
+                    }
+
+                    // Navigate back after showing error (with safety check)
+                    binding.root.postDelayed({
+                        if (isAdded && !isDetached && view != null) {
+                            try {
+                                findNavController().navigateUp()
+                            } catch (e: IllegalStateException) {
+                                android.util.Log.e("QuizFragment", "Navigation failed after error", e)
+                            }
+                        }
+                    }, 3000)
+                }
             }
             
             is QuizUiState.QuizFinished -> {
@@ -615,62 +656,89 @@ class QuizFragment : Fragment() {
     }
 
     private fun showQuizSummaryDialog() {
-        alie.info.newmultichoice.utils.Logger.d("QuizFragment", "=== CREATING SUMMARY DIALOG ===")
+        alie.info.newmultichoice.utils.Logger.d("QuizFragment", "=== CREATING FULLSCREEN SUMMARY OVERLAY ===")
         alie.info.newmultichoice.utils.Logger.d("QuizFragment", "isDemoMode: $isDemoMode, isAdded: $isAdded, isDetached: $isDetached")
-        
+
         if (!isAdded || isDetached || view == null) {
-            android.util.Log.e("QuizFragment", "Fragment not attached, cannot show summary dialog")
+            android.util.Log.e("QuizFragment", "Fragment not attached, cannot show summary overlay")
             return
         }
-        
-        val dialogBinding = DialogQuizSummaryBinding.inflate(layoutInflater)
-        
+
+        // Erstelle fullscreen Overlay statt Dialog
+        val overlayBinding = DialogQuizSummaryBinding.inflate(layoutInflater)
+        val overlayView = overlayBinding.root
+
+        // Berechne Statistiken
         val correct = correctAnswersLocal
         val wrong = wrongAnswersLocal
         val total = correct + wrong
         val accuracy = if (total > 0) (correct.toDouble() / total.toDouble()) * 100.0 else 0.0
-        
-        alie.info.newmultichoice.utils.Logger.d("QuizFragment", "Dialog stats: $correct / $total (${accuracy}%)")
-        
-        dialogBinding.scoreText.text = "$correct / $total"
-        dialogBinding.accuracyText.text = getString(R.string.session_accuracy, accuracy)
-        dialogBinding.correctCountText.text = getString(R.string.questions_correct, correct)
-        dialogBinding.incorrectCountText.text = getString(R.string.questions_incorrect, wrong)
-        
+
+        alie.info.newmultichoice.utils.Logger.d("QuizFragment", "Overlay stats: $correct / $total (${accuracy}%)")
+
+        // Setze Daten im Overlay
+        overlayBinding.scoreText.text = "$correct / $total"
+        overlayBinding.accuracyText.text = getString(R.string.session_accuracy, accuracy)
+        overlayBinding.correctCountText.text = getString(R.string.questions_correct, correct)
+        overlayBinding.incorrectCountText.text = getString(R.string.questions_incorrect, wrong)
+
         // Update close button text for demo mode
         if (isDemoMode) {
-            dialogBinding.closeButton.text = "Continue"
+            overlayBinding.closeButton.text = "Continue"
         }
-        
-        summaryDialog = MaterialAlertDialogBuilder(requireContext(), R.style.TransparentDialog)
-            .setView(dialogBinding.root)
-            .setCancelable(false)
-            .create()
-        
-        summaryDialog?.window?.setBackgroundDrawableResource(android.R.color.transparent)
-        
-        dialogBinding.closeButton.setOnClickListener {
+
+        // Get activity root view for fullscreen overlay
+        val activity = requireActivity()
+        val rootView = activity.window.decorView.findViewById<android.view.ViewGroup>(android.R.id.content)
+
+        // Erstelle fullscreen Overlay Layout Parameter
+        val overlayLayoutParams = android.view.ViewGroup.LayoutParams(
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT
+        )
+
+        // Setze Overlay als fullscreen
+        overlayView.layoutParams = overlayLayoutParams
+
+        // Erstelle dunklen Hintergrund für fullscreen Effekt
+        val backgroundView = android.view.View(requireContext()).apply {
+            setBackgroundColor(android.graphics.Color.parseColor("#B3000000")) // Semi-transparent black
+            layoutParams = overlayLayoutParams
+        }
+
+        // Erstelle Container für Overlay und Hintergrund
+        val container = android.widget.FrameLayout(requireContext()).apply {
+            layoutParams = overlayLayoutParams
+            addView(backgroundView)
+            addView(overlayView)
+        }
+
+        // Füge Container zur Root View hinzu
+        rootView.addView(container)
+
+        // Button Click Handler
+        overlayBinding.closeButton.setOnClickListener {
             alie.info.newmultichoice.utils.Logger.d("QuizFragment", "Close button clicked, isDemoMode: $isDemoMode")
-            
-            // Safely dismiss dialog
+
+            // Entferne Overlay sicher
             try {
-                summaryDialog?.dismiss()
+                rootView.removeView(container)
+                alie.info.newmultichoice.utils.Logger.d("QuizFragment", "Fullscreen overlay removed successfully")
             } catch (e: Exception) {
-                android.util.Log.e("QuizFragment", "Error dismissing summary dialog", e)
+                android.util.Log.e("QuizFragment", "Error removing fullscreen overlay", e)
             }
-            summaryDialog = null
-            
+
             // Use viewLifecycleOwner to ensure we're on the correct lifecycle
             viewLifecycleOwner.lifecycleScope.launch {
-                kotlinx.coroutines.delay(200) // Small delay to ensure dialog is dismissed
-                
+                kotlinx.coroutines.delay(200) // Small delay to ensure overlay is removed
+
                 // Check if fragment is still valid before navigation
                 if (!isAdded || isDetached || view == null) {
                     android.util.Log.w("QuizFragment", "Fragment no longer attached, skipping navigation")
                     return@launch
                 }
-                
-                // For demo mode, show upgrade prompt after summary dialog
+
+                // For demo mode, show upgrade prompt after summary overlay
                 if (isDemoMode) {
                     alie.info.newmultichoice.utils.Logger.d("QuizFragment", "Demo mode: Showing upgrade prompt after summary")
                     if (isAdded && !isDetached && view != null) {
@@ -695,13 +763,13 @@ class QuizFragment : Fragment() {
                 }
             }
         }
-        
-        alie.info.newmultichoice.utils.Logger.d("QuizFragment", "Showing summary dialog...")
+
+        alie.info.newmultichoice.utils.Logger.d("QuizFragment", "Showing fullscreen summary overlay...")
         try {
-            summaryDialog?.show()
-            alie.info.newmultichoice.utils.Logger.d("QuizFragment", "Summary dialog shown successfully")
+            // Overlay ist bereits sichtbar durch addView()
+            alie.info.newmultichoice.utils.Logger.d("QuizFragment", "Fullscreen summary overlay shown successfully")
         } catch (e: Exception) {
-            android.util.Log.e("QuizFragment", "Error showing summary dialog", e)
+            android.util.Log.e("QuizFragment", "Error showing fullscreen summary overlay", e)
         }
     }
     
@@ -741,10 +809,8 @@ class QuizFragment : Fragment() {
                 // Clear guest mode
                 authManager.clearGuestMode()
                 
-                // Start AuthActivity and keep loading dialog visible
-                val intent = Intent(requireContext(), AuthActivity::class.java)
-                intent.putExtra("show_loading", true)
-                startActivity(intent)
+                // Navigate to auth fragment instead
+                findNavController().navigate(R.id.authFragment)
                 
                 // Dismiss loading dialog after Activity transition completes
                 loadingBinding.root.postDelayed({
@@ -775,13 +841,93 @@ class QuizFragment : Fragment() {
         }
     }
 
+    private fun showQuestionNavigatorDialog() {
+        // Erstelle fullscreen Overlay statt Dialog
+        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_question_navigator, null)
+        val numberPicker = dialogView.findViewById<NumberPicker>(R.id.questionNumberPicker)
+        val jumpButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.jumpButton)
+        val cancelButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.cancelButton)
+
+        numberPicker.minValue = 1
+        numberPicker.maxValue = viewModel.getTotalQuestions()
+        numberPicker.value = viewModel.currentQuestionIndex.value?.plus(1) ?: 1
+        numberPicker.wrapSelectorWheel = false
+
+        // Make numbers more visible
+        try {
+            val textColor = ContextCompat.getColor(requireContext(), R.color.text_primary)
+            val textSize = 18f
+
+            // Set text color for different Android versions
+            val numberPickerClass = javaClass.classLoader?.loadClass("android.widget.NumberPicker")
+            val selectorWheelPaintField = numberPickerClass?.getDeclaredField("mSelectorWheelPaint")
+            selectorWheelPaintField?.isAccessible = true
+            val selectorWheelPaint = selectorWheelPaintField?.get(numberPicker) as? android.graphics.Paint
+            selectorWheelPaint?.color = textColor
+            selectorWheelPaint?.textSize = textSize * resources.displayMetrics.scaledDensity
+        } catch (e: Exception) {
+            // Fallback if reflection fails
+            numberPicker.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_primary))
+        }
+
+        // Get activity root view for fullscreen overlay
+        val activity = requireActivity()
+        val rootView = activity.window.decorView.findViewById<android.view.ViewGroup>(android.R.id.content)
+
+        // Erstelle fullscreen Overlay Layout Parameter
+        val overlayLayoutParams = android.view.ViewGroup.LayoutParams(
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT
+        )
+
+        // Setze Overlay als fullscreen
+        dialogView.layoutParams = overlayLayoutParams
+
+        // Erstelle dunklen Hintergrund für fullscreen Effekt
+        val backgroundView = android.view.View(requireContext()).apply {
+            setBackgroundColor(android.graphics.Color.parseColor("#B3000000")) // Semi-transparent black
+            layoutParams = overlayLayoutParams
+        }
+
+        // Erstelle Container für Overlay und Hintergrund
+        val container = android.widget.FrameLayout(requireContext()).apply {
+            layoutParams = overlayLayoutParams
+            addView(backgroundView)
+            addView(dialogView)
+        }
+
+        // Füge Container zur Activity hinzu
+        rootView.addView(container)
+
+        // Bring to front to ensure visibility
+        container.bringToFront()
+
+        jumpButton.setOnClickListener {
+            val selectedQuestion = numberPicker.value - 1
+            navigateToQuestion(selectedQuestion)
+            // Entferne das fullscreen Overlay
+            rootView.removeView(container)
+        }
+
+        cancelButton.setOnClickListener {
+            // Entferne das fullscreen Overlay
+            rootView.removeView(container)
+        }
+
+        // Optional: Dismiss on background click
+        backgroundView.setOnClickListener {
+            rootView.removeView(container)
+        }
+    }
+
+    private fun navigateToQuestion(questionIndex: Int) {
+        viewModel.navigateToQuestion(questionIndex)
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         // Cancel pending auto-next actions
         autoNextHandler.removeCallbacksAndMessages(null)
-        // Dismiss any open dialogs to prevent crashes
-        summaryDialog?.dismiss()
-        summaryDialog = null
         _binding = null
     }
 }

@@ -1,0 +1,1 @@
+INSERT INTO users (id, email, password_hash, verification_token, is_verified, created_at, updated_at) VALUES ('27b42f94-21c9-45f6-aefb-ab3cf5735783', 'test@example.com', '$2a$12$Epth8ROMeQmSI3mtw/XM5eJ9PzNsjWPdkkQqrHAYOJVGk/Kqu.zp.', 'd6698d43-7270-4a02-8c2d-c8454623154c', 0, 2025-12-26 19:17:12, 2025-12-26 19:17:12);

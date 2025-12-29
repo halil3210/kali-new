@@ -4,59 +4,77 @@ import retrofit2.Response
 import retrofit2.http.*
 
 interface AuthApiService {
-    
-    @POST("api/auth/register")
-    suspend fun register(
-        @Body request: RegisterRequest
-    ): Response<AuthResponse>
-    
+
     @POST("api/auth/login")
     suspend fun login(
-        @Body request: LoginRequest
+        @Body loginRequest: LoginRequest
     ): Response<AuthResponse>
-    
-    @DELETE("api/auth/delete-account")
-    suspend fun deleteAccount(
-        @Header("Authorization") token: String
-    ): Response<DeleteAccountResponse>
-    
-    @GET("api/auth/verify-app")
+
+    @POST("api/auth/register")
+    suspend fun register(
+        @Body registerRequest: RegisterRequest
+    ): Response<AuthResponse>
+
+    @POST("api/auth/verify-email-token")
     suspend fun verifyEmailWithToken(
-        @Query("token") token: String
+        @Body tokenRequest: TokenRequest
     ): Response<AuthResponse>
-    
-    @POST("api/auth/verify-code")
-    suspend fun verifyEmailWithCode(
-        @Body request: VerifyCodeRequest
-    ): Response<AuthResponse>
-    
+
+    @POST("api/auth/verify-email")
+    suspend fun verifyEmail(
+        @Body verifyRequest: VerifyRequest
+    ): Response<VerifyResponse>
+
     @POST("api/auth/resend-verification")
-    suspend fun resendVerification(
-        @Body request: ResendVerificationRequest
-    ): Response<ResendVerificationResponse>
-    
-    // Google Sign-In REMOVED - Causes emulator crashes
-    
+    suspend fun resendVerificationCode(
+        @Body resendRequest: ResendRequest
+    ): Response<VerifyResponse>
+
+    @DELETE("api/auth/account")
+    suspend fun deleteAccount(
+        @Header("Authorization") authHeader: String
+    ): Response<DeleteResponse>
 }
 
-data class DeleteAccountResponse(
-    val message: String? = null,
-    val error: String? = null
+// Request/Response Models
+data class LoginRequest(
+    val email: String,
+    val password: String
 )
 
-data class VerifyCodeRequest(
+data class RegisterRequest(
+    val email: String,
+    val password: String
+)
+
+data class TokenRequest(
+    val token: String
+)
+
+data class VerifyRequest(
     val userId: String,
     val code: String
 )
 
-data class ResendVerificationRequest(
-    val userId: String
+data class ResendRequest(
+    val userId: String,
+    val email: String
 )
 
-data class ResendVerificationResponse(
-    val message: String? = null,
-    val error: String? = null
+data class AuthResponse(
+    val success: Boolean = false,
+    val message: String = "",
+    val token: String? = null,
+    val userId: String? = null,
+    val email: String? = null
 )
 
-// Google Sign-In REMOVED - Causes emulator crashes
+data class VerifyResponse(
+    val success: Boolean = false,
+    val message: String = ""
+)
 
+data class DeleteResponse(
+    val success: Boolean = false,
+    val message: String = ""
+)

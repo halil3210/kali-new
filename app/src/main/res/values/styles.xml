@@ -2,8 +2,28 @@
 <resources>
     <style name="TransparentDialog" parent="Theme.Material3.DayNight.Dialog.Alert">
         <item name="android:windowBackground">@android:color/transparent</item>
-        <item name="android:windowIsFloating">true</item>
-        <item name="android:backgroundDimEnabled">true</item>
-        <item name="android:backgroundDimAmount">0.7</item>
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:backgroundDimAmount">0.0</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowActionBar">false</item>
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+    </style>
+
+    <!-- Custom TextInput Theme to prevent yellow background on paste -->
+    <style name="TextInputTheme" parent="Theme.Material3.DayNight">
+        <item name="colorPrimary">#6366F1</item>
+        <item name="colorOnSurface">#6366F1</item>
+        <item name="colorSurface">@android:color/transparent</item>
+        <item name="android:colorBackground">@android:color/transparent</item>
+        <item name="colorControlActivated">#6366F1</item>
+        <item name="colorControlHighlight">#406366F1</item>
+        <item name="colorControlNormal">#6366F1</item>
+        <item name="android:textColorHint">#94A3B8</item>
+        <item name="android:textColor">#F8FAFC</item>
+        <item name="android:textColorPrimary">#F8FAFC</item>
+        <item name="android:textColorSecondary">#CBD5E1</item>
     </style>
 </resources>

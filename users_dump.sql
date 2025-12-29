@@ -1,0 +1,14 @@
+PRAGMA foreign_keys=OFF;
+BEGIN TRANSACTION;
+CREATE TABLE users (
+      id TEXT PRIMARY KEY,
+      email TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      is_verified BOOLEAN DEFAULT FALSE,
+      verification_token TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+INSERT INTO users VALUES('f8e40ce6-7422-4fcc-9e49-90c7d57e1e57','test@server.com','$2a$12$UmGW36BV6WFxSvjCvIWmtuM6T0Bg4miXq2qSc/ipelkvGYXrX5V0u',0,'9d344b54-2c04-4d81-a23e-23c0605c7024','2025-12-22 10:58:58','2025-12-22 10:58:58');
+INSERT INTO users VALUES('27b42f94-21c9-45f6-aefb-ab3cf5735783','test@example.com','$2a$12$Epth8ROMeQmSI3mtw/XM5eJ9PzNsjWPdkkQqrHAYOJVGk/Kqu.zp.',0,'d6698d43-7270-4a02-8c2d-c8454623154c','2025-12-26 19:17:12','2025-12-26 19:17:12');
+COMMIT;

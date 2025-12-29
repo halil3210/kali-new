@@ -1,0 +1,567 @@
+# KLCP Quiz App - Komplette Bedienungsanleitung
+**Version:** 1.0.0 - Dezember 2025
+**Projekt-Pfad:** /home/halil/newmultichoice
+
+---
+
+## 📋 ÜBERSICHT
+
+Das KLCP Quiz ist eine moderne Android-Quiz-App für die KLCP-Zertifizierung mit:
+- ✅ 375 offizielle KLCP-Zertifizierungsfragen
+- ✅ Zweisprachig (Englisch/Deutsch)
+- ✅ Material Design 3 UI mit Dynamic Colors
+- ✅ Offline-First Architektur
+- ✅ Server-Sync für Multi-Gerät-Support
+- ✅ Achievement-System
+- ✅ Haptic Feedback & moderne Animationen
+
+---
+
+## 🏗️ PROJEKT-STRUKTUR
+
+### Android App (`app/`)
+```
+app/src/main/java/alie/info/newmultichoice/
+├── api/           # Server-Kommunikation (Retrofit)
+├── auth/          # Authentifizierung & Profile
+├── data/          # Datenmodelle & Room Database
+├── ui/            # UI-Fragments (Home, Quiz, Result, etc.)
+├── utils/         # Hilfsklassen (Haptic, Logging, etc.)
+└── services/      # Background-Services (Sync, Achievements)
+```
+
+### Server (`test_server/`)
+```
+├── server.js      # Express-Server Entry Point
+├── authRoutes.js  # Registration/Login/Verification
+├── syncRoutes.js  # Daten-Synchronisation
+├── statsRoutes.js # Statistiken & Sessions
+├── database.js    # SQLite-Wrapper
+└── klcp_quiz.db   # SQLite-Datenbank
+```
+
+### Datenverarbeitung (Python Scripts)
+- `create_perfect_json.py` - Erstellt Fragen-JSON aus PDFs
+- `fix_all_375_questions.py` - Korrigiert Antworten
+- `verify_answers.py` - Validierung der Antworten
+- `rebuild_questions.py` - Rekonstruiert Fragen-Datenbank
+
+---
+
+## 🚀 SCHNELLSTART
+
+### 1. Android App bauen & installieren
+```bash
+# Debug-Version bauen (empfohlen für Entwicklung)
+./gradlew assembleDebug
+
+# Release-Version bauen (benötigt local.properties mit Signierung)
+./gradlew assembleRelease
+
+# APK installieren
+adb install app/build/outputs/apk/debug/app-debug.apk
+```
+
+### 2. Server starten (für Sync-Features)
+```bash
+cd test_server
+npm install
+node server.js
+# Server läuft auf http://localhost:3000
+```
+
+### 3. Fragen-Daten aktualisieren
+```bash
+# Neue Fragen aus PDFs extrahieren
+python3 create_perfect_json.py
+
+# Antworten korrigieren
+python3 fix_all_375_questions.py
+
+# Validierung durchführen
+python3 verify_answers.py
+```
+
+---
+
+## 📱 ANDROID APP FEATURES
+
+### Material Design 3 Features
+- **Dynamic Colors** - Passt sich an Systemfarben an
+- **Dark Mode** - Automatisch oder manuell
+- **Edge-to-Edge Display** - Volle Bildschirmnutzung
+- **Haptic Feedback** - Unterschiedliche Vibrationen für Aktionen
+
+### Quiz-Funktionalität
+- **375 KLCP-Fragen** - Offizieller Fragenkatalog
+- **Sprachumschaltung** - Englisch ↔ Deutsch
+- **Sofortiges Feedback** - Visuelle & haptische Rückmeldung
+- **Progress Tracking** - Automatische Speicherung
+- **Ergebnis-Analyse** - Detaillierte Statistiken
+
+### Achievement-System
+- **10 Badge-Kategorien**: Beginner, Learner, Master, etc.
+- **Streak-Tracking** - Tägliche Quiz-Serien
+- **Performance-Metriken** - Richtige Antworten, Zeit, etc.
+
+---
+
+## 🔧 ENTWICKLUNGS-SETUP
+
+### Voraussetzungen
+- **Android Studio** Ladybug | 2024.2.1+
+- **JDK 11+**
+- **Android SDK 26+** (Android 8.0+)
+- **Gradle 8.12.3**
+
+### Build-Konfiguration
+```gradle
+// app/build.gradle.kts - Wichtige Dependencies
+dependencies {
+    // Material Design 3
+    implementation("com.google.android.material:material:1.12.0")
+
+    // Room Database
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+
+    // Networking (Retrofit)
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+
+    // Coroutines & Flow
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+}
+```
+
+---
+
+## 🌐 SERVER SETUP & DEPLOYMENT
+
+### Lokaler Test-Server
+```bash
+cd test_server
+
+# Dependencies installieren
+npm install
+
+# Server starten
+node server.js
+
+# Testen
+curl http://localhost:3000/api/health
+```
+
+### Produktions-Server (Hetzner)
+```bash
+# Server von Hetzner herunterladen
+./download_from_hetzner.sh
+
+# Server deployen
+./deploy-server.sh
+
+# Neuer Server einrichten
+./setup_new_server.sh
+```
+
+### Server-API Endpunkte
+```
+GET  /api/health              # Server-Status
+POST /api/auth/register       # User-Registrierung
+POST /api/auth/login          # User-Login
+POST /api/sync/upload         # Daten hochladen
+GET  /api/sync/download/:id   # Daten herunterladen
+GET  /api/stats/user/:id      # User-Statistiken
+POST /api/stats/update        # Statistiken aktualisieren
+```
+
+### Datenbank-Verwaltung
+```bash
+# Datenbank inspizieren
+sqlite3 klcp_quiz.db '.tables'
+sqlite3 klcp_quiz.db '.schema users'
+sqlite3 klcp_quiz.db 'SELECT * FROM users;'
+
+# User hinzufügen
+sqlite3 klcp_quiz.db "INSERT INTO users (email, password_hash) VALUES ('test@example.com', '$2b$12$...');"
+```
+
+---
+
+## 📊 DATENVERARBEITUNG (PYTHON SCRIPTS)
+
+### Fragen-Extraktion aus PDFs
+```bash
+# Vollständige Fragen aus KLCP_Fragenkatalog.pdf extrahieren
+python3 create_perfect_json.py
+# → Erstellt app/src/main/assets/questions.json
+```
+
+### Antworten-Korrektur
+```bash
+# Alle 375 Antworten manuell korrigieren
+python3 fix_all_375_questions.py
+
+# Antworten aus KLCP_Loesungen.pdf extrahieren
+python3 extract_pdf_answers.py
+
+# Vollständige Korrektur durchführen
+python3 complete_corrections.py
+```
+
+### Validierung & Tests
+```bash
+# Antworten validieren
+python3 verify_answers.py
+
+# Alle Fragen neu aufbauen
+python3 rebuild_questions.py
+
+# Vollständige JSON-Datei erstellen
+python3 create_perfect_json.py
+```
+
+### Daten-Analyse
+```bash
+# PDF-Inhalt analysieren
+python3 pdf_analysis.txt  # (enthält Analysen)
+
+# Erste Seiten extrahieren
+head -n 50 first_pages.txt
+```
+
+---
+
+## 🔐 SICHERHEIT & KONFIGURATION
+
+### Kritische Sicherheitsprobleme (beheben!)
+```bash
+# SOFORT BEHEBEN (aus SECURITY_AUDIT_REPORT.md)
+
+# Port 3000 blockieren (nur über Nginx erreichbar)
+ufw deny 3000/tcp
+
+# SSH Root-Login deaktivieren
+sed -i 's/PermitRootLogin yes/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config
+systemctl restart sshd
+
+# .env-Datei sichern
+chmod 600 /opt/klcp-server/.env
+chown root:root /opt/klcp-server/.env
+
+# Datenbank sichern
+chmod 600 /opt/klcp-server/klcp_quiz.db
+chown root:root /opt/klcp-server/klcp_quiz.db
+
+# System-Updates
+apt update && apt upgrade -y
+```
+
+### JWT & Authentifizierung
+```javascript
+// server.js - WICHTIG: Keine Fallback-Secrets!
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is required');
+}
+
+// Access Token: 15 Minuten
+// Refresh Token: 7 Tage (implementieren!)
+```
+
+### CORS-Konfiguration
+```javascript
+// server.js - Nur erlaubte Domains!
+app.use(cors({
+  origin: ['https://klcp.alie.info', 'https://www.klcp.alie.info'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+```
+
+---
+
+## 🔄 SYNC & BACKUP SYSTEM
+
+### Offline-First Strategie
+- **App funktioniert 100% offline**
+- **Fragen sind lokal gespeichert**
+- **Quiz-Logik läuft lokal**
+- **Server ist nur für Backup/Sync**
+
+### Automatischer Sync
+```kotlin
+// Alle 6 Stunden (wenn WiFi verfügbar)
+val constraints = Constraints.Builder()
+    .setRequiredNetworkType(NetworkType.UNMETERED)
+    .setRequiresBatteryNotLow(true)
+    .build()
+
+WorkManager.getInstance(context)
+    .enqueueUniquePeriodicWork(
+        "sync_work",
+        ExistingPeriodicWorkPolicy.KEEP,
+        PeriodicWorkRequestBuilder<SyncWorker>(6, TimeUnit.HOURS)
+            .setConstraints(constraints)
+            .build()
+    )
+```
+
+### Manueller Sync
+```kotlin
+lifecycleScope.launch {
+    val syncManager = SyncManager(requireContext())
+    when (val result = syncManager.smartSync()) {
+        is SyncResult.Success -> {
+            Toast.makeText(context, result.message, Toast.LENGTH_SHORT).show()
+        }
+        is SyncResult.Failure -> {
+            Log.e("Sync", result.error)
+        }
+    }
+}
+```
+
+---
+
+## 🧪 TESTING & DEBUGGING
+
+### Android Tests
+```bash
+# Unit Tests
+./gradlew testDebugUnitTest
+
+# Instrumented Tests
+./gradlew connectedAndroidTest
+
+# Spezifische Tests
+./gradlew testDebugUnitTest --tests="*QuizViewModelTest*"
+```
+
+### Server Tests
+```bash
+# Health Check
+curl http://localhost:3000/api/health
+
+# Auth Test
+curl -X POST http://localhost:3000/api/auth/register \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"test@example.com","password":"test12345"}'
+
+# Sync Test
+curl -X POST http://localhost:3000/api/sync/upload \
+  -H 'Content-Type: application/json' \
+  -d '{"userId":"123","quizSessions":[...]}'
+```
+
+### Datenbank-Debugging
+```bash
+# Server-Logs prüfen
+pm2 logs klcp-server --lines 50
+
+# Datenbank-Inhalte
+sqlite3 klcp_quiz.db 'SELECT COUNT(*) FROM users;'
+sqlite3 klcp_quiz.db 'SELECT * FROM quiz_sessions LIMIT 5;'
+
+# PM2 Status
+pm2 list
+pm2 restart klcp-server
+```
+
+---
+
+## 🚀 DEPLOYMENT & CI/CD
+
+### Release Build Setup
+```properties
+# local.properties (nicht im Git!)
+storeFile=../klcp-release-key.jks
+storePassword=your_secure_password
+keyAlias=klcp-key
+keyPassword=your_secure_password
+```
+
+### GitHub Actions Beispiel
+```yaml
+name: Build and Release
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 11
+        uses: actions/setup-java@v4
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+
+      - name: Build Release APK
+        run: ./gradlew assembleRelease
+        env:
+          SIGNING_KEY_STORE_PASSWORD: ${{ secrets.SIGNING_KEY_STORE_PASSWORD }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+```
+
+---
+
+## 🐛 PROBLEM-LÖSUNGEN
+
+### Häufige Probleme
+
+#### 1. Gradle Build fehlgeschlägt
+```bash
+# Cache leeren
+./gradlew clean
+rm -rf ~/.gradle/caches/
+
+# Neu bauen
+./gradlew assembleDebug
+```
+
+#### 2. Server startet nicht (Port belegt)
+```bash
+# Port freigeben
+fuser -k 3000/tcp 2>/dev/null || true
+
+# Server neustarten
+pm2 restart klcp-server
+```
+
+#### 3. Datenbank-Schema Fehler
+```bash
+# Schema prüfen
+sqlite3 klcp_quiz.db '.schema users'
+
+# Spalte hinzufügen falls fehlt
+sqlite3 klcp_quiz.db 'ALTER TABLE users ADD COLUMN verification_code TEXT;'
+```
+
+#### 4. Sync funktioniert nicht
+```bash
+# Netzwerk-Konnektivität prüfen
+ping 192.168.44.1  # WiFi AP
+ping 192.168.178.27 # Heimnetzwerk
+
+# Server-Logs prüfen
+pm2 logs klcp-server --lines 20
+```
+
+---
+
+## 📈 MONITORING & ANALYTICS
+
+### Server-Monitoring
+```bash
+# PM2 Monitoring
+pm2 monit
+
+# System-Ressourcen
+htop
+df -h
+free -h
+
+# Nginx Logs
+tail -f /var/log/nginx/access.log
+tail -f /var/log/nginx/error.log
+```
+
+### App Analytics (implementiert)
+- **Quiz-Sessions** - Vollständige Session-Historie
+- **User-Performance** - Statistiken pro User
+- **Achievement-Progress** - Badge-Fortschritt
+- **Sync-Status** - Letzte Synchronisation
+
+---
+
+## 🔄 WORKFLOWS
+
+### Tägliche Entwicklung
+1. **Code-Änderungen** in Android Studio
+2. **Build testen**: `./gradlew assembleDebug`
+3. **App installieren**: `adb install ...`
+4. **Funktionen testen** auf Device/Emulator
+5. **Server-Integration testen** (falls nötig)
+
+### Neue Fragen hinzufügen
+1. **PDF-Dateien aktualisieren** (`KLCP_Fragenkatalog.pdf`, `KLCP_Loesungen.pdf`)
+2. **Python-Scripts ausführen**: `create_perfect_json.py`
+3. **Antworten korrigieren**: `fix_all_375_questions.py`
+4. **Validierung**: `verify_answers.py`
+5. **App neu bauen** und testen
+
+### Server-Deployment
+1. **Lokale Tests** in `test_server/`
+2. **Code auf Server kopieren**: `./copy_server_from_hetzner.sh`
+3. **Server neustarten**: `pm2 restart klcp-server`
+4. **Sicherheit prüfen**: Alle Fixes aus `SECURITY_AUDIT_REPORT.md`
+5. **Monitoring einrichten**
+
+---
+
+## 📞 SUPPORT & KONTAKTE
+
+### Dokumentation
+- `README.md` - Haupt-Features & Setup
+- `SERVER_INTEGRATION_GUIDE.md` - Server-Integration
+- `SECURITY_AUDIT_REPORT.md` - Sicherheits-Status
+- `AI_INSTRUCTIONS.md` - Server-Entwicklungshinweise
+
+### Wichtige Dateien
+- `app/src/main/assets/questions.json` - Quiz-Fragen
+- `test_server/klcp_quiz.db` - Server-Datenbank
+- `local.properties` - Build-Konfiguration (nicht im Git!)
+- `.env` - Server-Umgebungsvariablen
+
+### Backup-Strategie
+```bash
+# Wichtige Dateien sichern
+tar -czf backup_$(date +%Y%m%d).tar.gz \
+  test_server/klcp_quiz.db \
+  app/src/main/assets/questions.json \
+  local.properties \
+  klcp-release-key.jks
+```
+
+---
+
+## 🎯 ZUKÜNFTIGE FEATURES (Roadmap)
+
+### Phase 2 (2026)
+- [ ] Bottom Sheet Settings Panel
+- [ ] Swipe Gestures für Navigation
+- [ ] Jetpack Compose für neue Screens
+- [ ] Quiz-Statistiken mit Charts
+- [ ] Onboarding-Flow für neue User
+
+### Phase 3 (2026+)
+- [ ] Timed Quiz Mode
+- [ ] Custom Quiz (Fragenanzahl wählbar)
+- [ ] Bookmark-System für schwierige Fragen
+- [ ] Learning Mode mit Erklärungen
+- [ ] Cloud Sync der Fortschritte
+
+---
+
+## ⚠️ WICHTIGE HINWEISE
+
+1. **Fragen werden NICHT vom Server geladen!** App ist offline-first
+2. **Server ist nur Backup/Cloud-Storage** für User-Fortschritt
+3. **Sicherheitsaudits** regelmäßig durchführen (alle 3 Monate)
+4. **Datenbank-Schema** vor Code-Deployments prüfen
+5. **JWT-Secrets** niemals im Code hardcoden
+6. **Port 3000** nicht direkt exponieren (nur über Nginx)
+7. **Root-Login** über SSH deaktivieren
+8. **System-Updates** regelmäßig installieren
+
+---
+
+**Letzte Aktualisierung:** Dezember 2025
+**Erstellt von:** Halil Yücedag
+**Projekt-Version:** 1.0.0
