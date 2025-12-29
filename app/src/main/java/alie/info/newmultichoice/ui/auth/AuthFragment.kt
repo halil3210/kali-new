@@ -268,7 +268,6 @@ class AuthFragment : Fragment() {
     private fun animateLoginSuccess(binding: DialogLoginBinding) {
         android.util.Log.d("AuthFragment", "🎬 STARTING LOGIN ANIMATION - Fragment: ${this.hashCode()}")
 
-
         // Get the logo container from the dialog
         val logoContainer = binding.logoRotationContainer
         val appLogo = binding.appLogo
@@ -312,9 +311,17 @@ class AuthFragment : Fragment() {
         val logoCenterStartX = relativeStartX + logoContainer.width / 2f
         val logoCenterStartY = relativeStartY + logoContainer.height / 2f
 
-        val offsetX = 100f * density
-        val translationX = (screenCenterX - logoCenterStartX) + offsetX
-        val translationY = (screenCenterY - logoCenterStartY) * 0.7f
+        // Translation to screen center
+        val translationToCenter = (screenCenterX - logoCenterStartX) to (screenCenterY - logoCenterStartY)
+        
+        // Calculate home logo position (top center of screen, with some margin)
+        // Home logo is at top with 16dp margin + 180dp container centered
+        val homeLogoTopMargin = 60f * density + 16f * density // paddingTop + marginTop from fragment_home.xml
+        val homeLogoCenterX = screenCenterX // centered horizontally
+        val homeLogoCenterY = homeLogoTopMargin + (180f * density / 2f) // top margin + half container height
+        
+        // Translation from screen center to home logo position
+        val translationToHome = (homeLogoCenterX - screenCenterX) to (homeLogoCenterY - screenCenterY)
 
         // Create overlay view
         val overlayView = View(requireContext()).apply {
@@ -429,10 +436,11 @@ class AuthFragment : Fragment() {
 
         // Force layout and animate scale and translation
         animatedLogoContainer.post {
-            // Position to center first
+            // Phase 1: Position to center first
+            android.util.Log.d("AuthFragment", "📍 Phase 1: Moving to screen center")
             animatedLogoContainer.animate()
-                .translationX(translationX)
-                .translationY(translationY)
+                .translationX(translationToCenter.first)
+                .translationY(translationToCenter.second)
                 .setDuration(800)
                 .setInterpolator(AccelerateDecelerateInterpolator())
                 .withEndAction {
@@ -445,59 +453,78 @@ class AuthFragment : Fragment() {
                         .withStartAction {
                             animatedLogoContainer.bringToFront()
                             overlayView.bringToFront()
-
-                            // Entferne das Login Overlay zuerst, dann navigate
-                            try {
-                                val activity = requireActivity()
-                                val rootView = activity.window.decorView.findViewById<android.view.ViewGroup>(android.R.id.content)
-                                // Finde und entferne alle fullscreen Container (Login/Register Overlays)
-                                for (i in 0 until rootView.childCount) {
-                                    val child = rootView.getChildAt(i)
-                                    if (child is android.widget.FrameLayout &&
-                                        child.tag == null && // Unsere Overlays haben kein Tag
-                                        child.childCount >= 2) { // Background + Content View
-                                        rootView.removeView(child)
-                                        break
-                                    }
-                                }
-                            } catch (e: Exception) {
-                                android.util.Log.e("AuthFragment", "Error removing login overlay", e)
-                            }
-
-                            // Navigate to home AFTER a short delay to ensure fragment manager is ready
-                            Handler(Looper.getMainLooper()).postDelayed({
-                                navigateToHome()
-                            }, 100)
                         }
                         .withEndAction {
-                            // Stop rotation and shrink logo
+                            // Phase 2: Move to home logo position and shrink
+                            android.util.Log.d("AuthFragment", "🎯 Phase 2: Moving to home logo position")
+                            
+                            // Stop rotation for smooth transition
                             rotationAnimator.cancel()
-
+                            
+                            // Calculate final scale (home logo is 100dp, we're at 180dp * scaleFactor)
+                            val currentSize = 180f * density * scaleFactor
+                            val targetSize = 100f * density
+                            val finalScale = targetSize / currentSize
+                            
                             animatedLogoContainer.animate()
-                                .scaleX(0f)
-                                .scaleY(0f)
-                                .translationX(88f * density)
-                                .translationY(82f * density)
-                                .setDuration(800)
-                                .withEndAction {
-                                    // Remove animated logo after delay
-                                    Handler(Looper.getMainLooper()).postDelayed({
-                                        try {
-                                            rootView.removeView(animatedLogoContainer)
-                                        } catch (e: Exception) {
-                                            // View already removed
+                                .scaleX(finalScale)
+                                .scaleY(finalScale)
+                                .translationX(translationToHome.first)
+                                .translationY(translationToHome.second)
+                                .setDuration(1000)
+                                .setInterpolator(AccelerateDecelerateInterpolator())
+                                .withStartAction {
+                                    // Remove login overlay and navigate to home
+                                    try {
+                                        val activity = requireActivity()
+                                        val contentRoot = activity.window.decorView.findViewById<android.view.ViewGroup>(android.R.id.content)
+                                        // Find and remove fullscreen container (Login/Register Overlays)
+                                        for (i in 0 until contentRoot.childCount) {
+                                            val child = contentRoot.getChildAt(i)
+                                            if (child is android.widget.FrameLayout &&
+                                                child.tag == null && // Our overlays have no tag
+                                                child.childCount >= 2) { // Background + Content View
+                                                contentRoot.removeView(child)
+                                                break
+                                            }
                                         }
-                                    }, 200)
+                                    } catch (e: Exception) {
+                                        android.util.Log.e("AuthFragment", "Error removing login overlay", e)
+                                    }
+                                    
+                                    // Navigate to home immediately so it loads in background
+                                    Handler(Looper.getMainLooper()).postDelayed({
+                                        navigateToHome()
+                                    }, 100)
                                 }
-                                .start()
-
-                            // Fade out overlay
-                            overlayView.animate()
-                                .alpha(0f)
-                                .setDuration(300)
                                 .withEndAction {
-                                    rootView.removeView(overlayView)
-                                }
+                                    // Phase 3: Fade out and remove
+                                    android.util.Log.d("AuthFragment", "✨ Phase 3: Fading out")
+                                    
+                                    animatedLogoContainer.animate()
+                                        .alpha(0f)
+                                        .scaleX(0f)
+                                        .scaleY(0f)
+                                        .setDuration(400)
+                                        .withEndAction {
+                                            // Remove animated logo
+                                            Handler(Looper.getMainLooper()).postDelayed({
+                                                try {
+                                                    rootView.removeView(animatedLogoContainer)
+                                                } catch (e: Exception) {
+                                                    // View already removed
+                                                }
+                                            }, 100)
+                                        }
+                                        .start()
+
+                                    // Fade out overlay
+                                    overlayView.animate()
+                                        .alpha(0f)
+                                        .setDuration(500)
+                                        .withEndAction {
+                                            rootView.removeView(overlayView)
+                                        }
                                 .start()
                         }
                         .start()
